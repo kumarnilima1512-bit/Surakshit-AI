@@ -25,3 +25,7 @@ logs
 
 node_modules/
 dist/
+.agents
+.claude
+.cursor
+.devin

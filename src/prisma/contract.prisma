@@ -1,0 +1,33 @@
+// use prisma-next
+
+enum Role {
+  ADMIN
+  COMMANDER
+  OFFICER
+  PERSONNEL
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  username  String?
+  name      String?
+  password  String
+  role      Role     @default(PERSONNEL)
+
+  posts     Post[]
+
+  createdAt TimestamptzString @default(now())
+  updatedAt temporal.updatedAtString()
+}
+
+model Post {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String?
+  author    User     @relation(fields: [authorId], references: [id])
+  authorId  Int
+
+  createdAt TimestamptzString @default(now())
+  updatedAt temporal.updatedAtString()
+}
