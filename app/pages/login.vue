@@ -2,6 +2,12 @@
 const role = ref<'personnel' | 'officer' | 'commander' | 'admin'>('personnel')
 const showPassword = ref(false)
 
+const userId = ref('')
+const password = ref('')
+const twoFactorCode = ref('')
+const loginError = ref('')
+const isLoading = ref(false)
+
 const currentLang = useAppLanguage()
 const { t } = useTranslations(currentLang)
 
@@ -11,6 +17,42 @@ const roles = [
   { key: 'commander', labelKey: 'role_commander', icon: 'star' },
   { key: 'admin', labelKey: 'role_admin', icon: 'settings' },
 ] as const
+
+const handleLogin = async () => {
+  loginError.value = ''
+  isLoading.value = true
+
+  try {
+    const response = await $fetch('/api/auth/login', {
+      method: 'POST',
+      body: {
+        userId: userId.value,
+        password: password.value,
+      },
+    })
+
+    console.log('LOGIN RESPONSE:', response)
+
+    if (response.success) {
+      const userRole = response.user.role
+
+      if (userRole === 'ADMIN') {
+        await navigateTo('/admin/dashboard')
+      } else if (userRole === 'COMMANDER') {
+        await navigateTo('/commander')
+      } else if (userRole === 'OFFICER') {
+        await navigateTo('/officer')
+      } else {
+        await navigateTo('/personnel')
+      }
+    }
+  } catch (error: any) {
+    loginError.value =
+      error?.data?.message || 'Invalid User ID or password'
+  } finally {
+    isLoading.value = false
+  }
+}
 </script>
 
 <template>
@@ -147,18 +189,32 @@ const roles = [
 
         <!-- Inputs -->
         <div class="mt-6 space-y-4">
+          <!-- User ID / Email -->
           <div class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 focus-within:border-slate-400">
             <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
             </svg>
-            <input type="text" :placeholder="t('placeholder_userid')" class="w-full text-sm text-slate-800 placeholder-slate-400 outline-none">
+            <input
+              v-model="userId"
+              type="text"
+              autocomplete="username"
+              :placeholder="t('placeholder_userid')"
+              class="w-full text-sm text-slate-800 placeholder-slate-400 outline-none"
+            />
           </div>
 
+          <!-- Password -->
           <div class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 focus-within:border-slate-400">
             <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
             </svg>
-            <input :type="showPassword ? 'text' : 'password'" :placeholder="t('placeholder_password')" class="w-full text-sm text-slate-800 placeholder-slate-400 outline-none">
+            <input
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              autocomplete="current-password"
+              :placeholder="t('placeholder_password')"
+              class="w-full text-sm text-slate-800 placeholder-slate-400 outline-none"
+            />
             <button type="button" @click="showPassword = !showPassword">
               <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.45 10.45 0 0112 4.5c4.756 0 8.773 3.162 10.065 7.498a10.523 10.523 0 01-4.293 5.774M6.228 6.228L3 3m3.228 3.228l3.65 3.65m7.894 7.894L21 21m-3.228-3.228l-3.65-3.65m0 0a3 3 0 10-4.243-4.243m4.243 4.243L9.88 9.88"></path>
@@ -166,16 +222,26 @@ const roles = [
             </button>
           </div>
 
+          <!-- 2FA code -->
           <div class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 focus-within:border-slate-400">
             <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12.75L11.25 15 15 9.75M12 3l8.25 4v5c0 5-3.375 8.5-8.25 10-4.875-1.5-8.25-5-8.25-10v-5L12 3z"></path>
             </svg>
-            <input type="text" :placeholder="t('placeholder_2fa')" class="w-full text-sm text-slate-800 placeholder-slate-400 outline-none">
+            <input
+              v-model="twoFactorCode"
+              type="text"
+              :placeholder="t('placeholder_2fa')"
+              class="w-full text-sm text-slate-800 placeholder-slate-400 outline-none"
+            />
             <svg class="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3.75 4.5h4.5v4.5h-4.5v-4.5zM15.75 4.5h4.5v4.5h-4.5v-4.5zM3.75 15h4.5v4.5h-4.5V15zM15 15h1.5v1.5H15V15zM18.75 15h1.5v1.5h-1.5V15zM15 18.75h1.5v1.5H15v-1.5zM18.75 18.75h1.5v1.5h-1.5v-1.5z"></path>
             </svg>
           </div>
         </div>
+
+        <p v-if="loginError" class="mt-3 text-sm font-medium text-red-600">
+          {{ loginError }}
+        </p>
 
         <div class="mt-4 flex items-center justify-between text-sm">
           <label class="flex items-center gap-2 text-slate-600">
@@ -185,11 +251,15 @@ const roles = [
           <a href="#" class="font-medium text-blue-600 hover:underline">{{ t('forgot_password') }}</a>
         </div>
 
-        <button class="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-bold uppercase tracking-wide text-white hover:bg-slate-800 transition-colors">
+        <button
+          @click="handleLogin"
+          :disabled="isLoading"
+          class="mt-6 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 py-3 text-sm font-bold uppercase tracking-wide text-white hover:bg-slate-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+        >
           <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l4-4m0 0l-4-4m4 4H3m8 5v1a3 3 0 003 3h4a3 3 0 003-3V7a3 3 0 00-3-3h-4a3 3 0 00-3 3v1"></path>
           </svg>
-          {{ t('sign_in') }}
+          {{ isLoading ? t('signing_in') || '...' : t('sign_in') }}
         </button>
 
         <div class="my-5 flex items-center gap-3 text-xs font-medium text-slate-400">
