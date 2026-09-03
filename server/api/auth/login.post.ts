@@ -4,22 +4,28 @@ import { verifyPassword } from '../../utils/auth'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{
-    email?: string
-    password?: string
-  }>(event)
+  userId?: string
+  password?: string
+}>(event)
 
-  if (!body?.email || !body?.password) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Email and password are required',
-    })
-  }
-
-  const email = body.email.trim().toLowerCase()
-
-  const user = await db.orm.public.User.first({
-    email,
+if (!body?.userId || !body?.password) {
+  throw createError({
+    statusCode: 400,
+    statusMessage: 'User ID and password are required',
   })
+}
+
+const userId = body.userId.trim().toLowerCase()
+
+let user = await db.orm.public.User.first({
+  email: userId,
+})
+
+if (!user) {
+  user = await db.orm.public.User.first({
+    username: userId,
+  })
+}
 
   if (!user) {
     throw createError({
