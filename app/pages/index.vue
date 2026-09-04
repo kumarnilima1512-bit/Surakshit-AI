@@ -1,10 +1,12 @@
 <template>
   <div class="flex min-h-screen flex-col items-center justify-center gap-8 bg-slate-950 px-6 text-center text-white">
-    <div class="flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-teal-400 to-emerald-500">
-      <svg class="h-7 w-7 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M12 3l8.25 4v5c0 5-3.375 8.5-8.25 10-4.875-1.5-8.25-5-8.25-10v-5L12 3z"></path>
-      </svg>
-    </div>
+    <div class="flex h-24 w-24 items-center justify-center overflow-hidden">
+  <img
+    src="/logos/surakshit-ai.png"
+    alt="Surakshit AI Logo"
+    class="h-full w-full object-contain"
+  />
+</div>
 
     <div>
       <h1 class="text-2xl font-semibold tracking-tight">Surakshit AI</h1>
