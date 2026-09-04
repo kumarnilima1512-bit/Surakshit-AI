@@ -1,0 +1,71 @@
+{
+    "target": "stress_level",
+    "features": [
+        "age",
+        "gender",
+        "job_role",
+        "experience_years",
+        "company_size",
+        "work_mode",
+        "work_hours_per_week",
+        "overtime_hours",
+        "meetings_per_day",
+        "deadlines_missed",
+        "job_satisfaction",
+        "manager_support",
+        "work_life_balance",
+        "sleep_hours",
+        "physical_activity_days",
+        "screen_time_hours",
+        "caffeine_intake",
+        "social_support_score",
+        "has_therapy"
+    ],
+    "numerical_features": [
+        "age",
+        "experience_years",
+        "work_hours_per_week",
+        "overtime_hours",
+        "meetings_per_day",
+        "deadlines_missed",
+        "job_satisfaction",
+        "manager_support",
+        "work_life_balance",
+        "sleep_hours",
+        "physical_activity_days",
+        "screen_time_hours",
+        "caffeine_intake",
+        "social_support_score",
+        "has_therapy"
+    ],
+    "categorical_features": [
+        "gender",
+        "job_role",
+        "company_size",
+        "work_mode"
+    ],
+    "risk_levels": {
+        "Low": [
+            1.0,
+            3.0
+        ],
+        "Moderate": [
+            3.0,
+            5.0
+        ],
+        "Elevated": [
+            5.0,
+            7.0
+        ],
+        "High": [
+            7.0,
+            10.0
+        ]
+    },
+    "metrics": {
+        "MAE": 0.6425,
+        "RMSE": 0.8072,
+        "R2": 0.6354,
+        "within_1_stress_agreement": 78.41
+    }
+}

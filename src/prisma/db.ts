@@ -8,7 +8,3 @@ export const db = postgres<Contract>({
   url: process.env['DATABASE_URL']!,
 });
 
-// db.orm.public.User.create({
-//   email: " ... ",
-//   name: " ... ",
-// })

@@ -39,11 +39,11 @@ const handleLogin = async () => {
       if (userRole === 'ADMIN') {
         await navigateTo('/admin/dashboard')
       } else if (userRole === 'COMMANDER') {
-        await navigateTo('/commander')
+        await navigateTo('/commander/dashboard')
       } else if (userRole === 'OFFICER') {
-        await navigateTo('/officer')
+        await navigateTo('/officer/dashboard')
       } else {
-        await navigateTo('/personnel')
+        await navigateTo('/personnel/dashboard')
       }
     }
   } catch (error: any) {

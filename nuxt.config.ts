@@ -2,6 +2,10 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
+
+  runtimeConfig: {
+    mlServiceUrl: process.env.ML_SERVICE_URL
+  },
   modules: [
     '@nuxtjs/tailwindcss'
   ]
