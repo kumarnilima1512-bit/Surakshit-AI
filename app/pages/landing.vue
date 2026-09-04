@@ -66,11 +66,13 @@ const dashboardChecklist = [
     <header class="sticky top-0 z-50 border-b border-white/10 bg-slate-950/90 backdrop-blur-md">
       <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <div class="flex items-center gap-3">
-          <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500">
-            <svg class="h-5 w-5 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M12 3l8.25 4v5c0 5-3.375 8.5-8.25 10-4.875-1.5-8.25-5-8.25-10v-5L12 3z"></path>
-            </svg>
-          </div>
+          <div class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-xl">
+  <img
+    src="/logos/surakshit-ai.png"
+    alt="Surakshit AI Logo"
+    class="h-full w-full object-contain"
+  />
+</div>
           <div class="leading-tight">
             <p class="text-base font-semibold tracking-tight text-white">Surakshit AI</p>
             <p class="text-[10px] text-slate-400">Safe Forces. Stronger Nation.</p>
@@ -399,11 +401,13 @@ const dashboardChecklist = [
       <div class="mx-auto max-w-7xl px-6">
         <div class="flex flex-col items-center justify-between gap-6 sm:flex-row">
           <div class="flex items-center gap-3">
-            <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-teal-400 to-emerald-500">
-              <svg class="h-4 w-4 text-slate-950" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12.75L11.25 15 15 9.75M12 3l8.25 4v5c0 5-3.375 8.5-8.25 10-4.875-1.5-8.25-5-8.25-10v-5L12 3z"></path>
-              </svg>
-            </div>
+            <div class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg">
+  <img
+    src="/logos/surakshit-ai.png"
+    alt="Surakshit AI Logo"
+    class="h-full w-full object-contain"
+  />
+</div>
             <div class="leading-tight">
               <p class="text-sm font-semibold text-white">Surakshit AI</p>
               <p class="text-[10px] text-slate-500">Safe Forces. Stronger Nation.</p>
