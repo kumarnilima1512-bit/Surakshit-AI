@@ -8,12 +8,20 @@
       "model": "Assessment",
       "namespace": "public"
     },
+    "followUp": {
+      "model": "FollowUp",
+      "namespace": "public"
+    },
     "notification": {
       "model": "Notification",
       "namespace": "public"
     },
     "post": {
       "model": "Post",
+      "namespace": "public"
+    },
+    "recommendation": {
+      "model": "Recommendation",
       "namespace": "public"
     },
     "unit": {
@@ -33,6 +41,44 @@
     "namespaces": {
       "public": {
         "enum": {
+          "PersonnelStatus": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "ACTIVE",
+                "value": "ACTIVE"
+              },
+              {
+                "name": "ON_LEAVE",
+                "value": "ON_LEAVE"
+              },
+              {
+                "name": "INACTIVE",
+                "value": "INACTIVE"
+              }
+            ]
+          },
+          "RecommendationType": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "SLEEP",
+                "value": "SLEEP"
+              },
+              {
+                "name": "ACTIVITY",
+                "value": "ACTIVITY"
+              },
+              {
+                "name": "WORKLOAD",
+                "value": "WORKLOAD"
+              },
+              {
+                "name": "SOCIAL",
+                "value": "SOCIAL"
+              }
+            ]
+          },
           "Role": {
             "codecId": "pg/text@1",
             "members": [
@@ -94,7 +140,23 @@
                 }
               }
             },
-            "relations": {},
+            "relations": {
+              "user": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
             "storage": {
               "fields": {
                 "createdAt": {
@@ -115,6 +177,93 @@
               },
               "namespaceId": "public",
               "table": "assessment"
+            }
+          },
+          "FollowUp": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "notes": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "scheduledAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "user": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "notes": {
+                  "column": "notes"
+                },
+                "scheduledAt": {
+                  "column": "scheduledAt"
+                },
+                "status": {
+                  "column": "status"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "followUp"
             }
           },
           "Notification": {
@@ -169,7 +318,23 @@
                 }
               }
             },
-            "relations": {},
+            "relations": {
+              "user": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
             "storage": {
               "fields": {
                 "createdAt": {
@@ -285,6 +450,119 @@
               "table": "post"
             }
           },
+          "Recommendation": {
+            "fields": {
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "description": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "isActive": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "title": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "type": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "RecommendationType",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "user": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "description": {
+                  "column": "description"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "isActive": {
+                  "column": "isActive"
+                },
+                "title": {
+                  "column": "title"
+                },
+                "type": {
+                  "column": "type"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "recommendation"
+            }
+          },
           "Unit": {
             "fields": {
               "code": {
@@ -337,7 +615,23 @@
                 }
               }
             },
-            "relations": {},
+            "relations": {
+              "assignments": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "unitId"
+                  ]
+                },
+                "to": {
+                  "model": "UnitAssignment",
+                  "namespace": "public"
+                }
+              }
+            },
             "storage": {
               "fields": {
                 "code": {
@@ -397,7 +691,38 @@
                 }
               }
             },
-            "relations": {},
+            "relations": {
+              "personnel": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "personnelId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              },
+              "unit": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "unitId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "Unit",
+                  "namespace": "public"
+                }
+              }
+            },
             "storage": {
               "fields": {
                 "assignedAt": {
@@ -454,7 +779,27 @@
                   "kind": "scalar"
                 }
               },
+              "personnelStatus": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "PersonnelStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
               "profilePicture": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "rank": {
                 "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
@@ -474,6 +819,20 @@
                   "plane": "domain"
                 }
               },
+              "twoFactorEnabled": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "twoFactorPinHash": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "updatedAt": {
                 "nullable": false,
                 "type": {
@@ -490,6 +849,51 @@
               }
             },
             "relations": {
+              "assessments": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "Assessment",
+                  "namespace": "public"
+                }
+              },
+              "followUps": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "FollowUp",
+                  "namespace": "public"
+                }
+              },
+              "notifications": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "Notification",
+                  "namespace": "public"
+                }
+              },
               "posts": {
                 "cardinality": "1:N",
                 "on": {
@@ -502,6 +906,36 @@
                 },
                 "to": {
                   "model": "Post",
+                  "namespace": "public"
+                }
+              },
+              "recommendations": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "Recommendation",
+                  "namespace": "public"
+                }
+              },
+              "unitAssignments": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "personnelId"
+                  ]
+                },
+                "to": {
+                  "model": "UnitAssignment",
                   "namespace": "public"
                 }
               }
@@ -523,11 +957,23 @@
                 "password": {
                   "column": "password"
                 },
+                "personnelStatus": {
+                  "column": "personnelStatus"
+                },
                 "profilePicture": {
                   "column": "profilePicture"
                 },
+                "rank": {
+                  "column": "rank"
+                },
                 "role": {
                   "column": "role"
+                },
+                "twoFactorEnabled": {
+                  "column": "twoFactorEnabled"
+                },
+                "twoFactorPinHash": {
+                  "column": "twoFactorPinHash"
                 },
                 "updatedAt": {
                   "column": "updatedAt"
@@ -585,8 +1031,114 @@
                   "nullable": false
                 }
               },
-              "foreignKeys": [],
-              "indexes": [],
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "assessment"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "user"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "assessment_userId_idx_a489d58a",
+                  "prefix": "assessment_userId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "followUp": {
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "notes": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "scheduledAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "SCHEDULED"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "userId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "followUp"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "user"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "followUp_userId_idx_a489d58a",
+                  "prefix": "followUp_userId_idx",
+                  "unique": false
+                }
+              ],
               "primaryKey": {
                 "columns": [
                   "id"
@@ -644,8 +1196,34 @@
                   "nullable": false
                 }
               },
-              "foreignKeys": [],
-              "indexes": [],
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "notification"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "user"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "notification_userId_idx_a489d58a",
+                  "prefix": "notification_userId_idx",
+                  "unique": false
+                }
+              ],
               "primaryKey": {
                 "columns": [
                   "id"
@@ -719,6 +1297,109 @@
                   ],
                   "name": "post_authorId_idx_e47547ed",
                   "prefix": "post_authorId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "recommendation": {
+              "checks": [
+                {
+                  "expression": "\"type\" IN ('SLEEP', 'ACTIVITY', 'WORKLOAD', 'SOCIAL')",
+                  "name": "recommendation_type_check_36fb4734",
+                  "prefix": "recommendation_type_check"
+                }
+              ],
+              "columns": {
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "description": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "isActive": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": true
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "title": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "type": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "RecommendationType",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "userId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "recommendation"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "user"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "recommendation_userId_idx_a489d58a",
+                  "prefix": "recommendation_userId_idx",
                   "unique": false
                 }
               ],
@@ -821,8 +1502,58 @@
                   "nullable": false
                 }
               },
-              "foreignKeys": [],
-              "indexes": [],
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "unitId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "unitAssignment"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "unit"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "personnelId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "unitAssignment"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "user"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "personnelId"
+                  ],
+                  "name": "unitAssignment_personnelId_idx_3649ff23",
+                  "prefix": "unitAssignment_personnelId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "unitId"
+                  ],
+                  "name": "unitAssignment_unitId_idx_be785412",
+                  "prefix": "unitAssignment_unitId_idx",
+                  "unique": false
+                }
+              ],
               "primaryKey": {
                 "columns": [
                   "id"
@@ -832,6 +1563,11 @@
             },
             "user": {
               "checks": [
+                {
+                  "expression": "\"personnelStatus\" IN ('ACTIVE', 'ON_LEAVE', 'INACTIVE')",
+                  "name": "user_personnelStatus_check_dafaf6fd",
+                  "prefix": "user_personnelStatus_check"
+                },
                 {
                   "expression": "\"role\" IN ('ADMIN', 'COMMANDER', 'OFFICER', 'PERSONNEL')",
                   "name": "user_role_check_7e600008",
@@ -872,7 +1608,27 @@
                   "nativeType": "text",
                   "nullable": false
                 },
+                "personnelStatus": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "ACTIVE"
+                  },
+                  "nativeType": "text",
+                  "nullable": false,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "PersonnelStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
                 "profilePicture": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "rank": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": true
@@ -891,6 +1647,20 @@
                     "namespaceId": "public",
                     "plane": "storage"
                   }
+                },
+                "twoFactorEnabled": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "twoFactorPinHash": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "updatedAt": {
                   "codecId": "pg/timestamptz-string@1",
@@ -920,6 +1690,23 @@
             }
           },
           "valueSet": {
+            "PersonnelStatus": {
+              "kind": "valueSet",
+              "values": [
+                "ACTIVE",
+                "ON_LEAVE",
+                "INACTIVE"
+              ]
+            },
+            "RecommendationType": {
+              "kind": "valueSet",
+              "values": [
+                "SLEEP",
+                "ACTIVITY",
+                "WORKLOAD",
+                "SOCIAL"
+              ]
+            },
             "Role": {
               "kind": "valueSet",
               "values": [
@@ -935,10 +1722,10 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "b0c6d47352abd53cbf60123a9ed04c2de8ad4156fcbd9cc78ac9100dd50ad927"
+    "storageHash": "71cf221177ee58b4b3a61276d94a08c150c4139be5acf667d0bea74044885e24"
   },
   "execution": {
-    "executionHash": "6999e4b3e74ed11a9107a87b83519fd1d3e9ea05dba7bad9963b1f1ab4314fbc",
+    "executionHash": "5168a06e810857bf1c1b681ade43407db02dade1a5e43b35b4b8d337c8e5e76c",
     "mutations": {
       "defaults": [
         {
@@ -954,6 +1741,21 @@
             "column": "updatedAt",
             "namespace": "public",
             "table": "post"
+          }
+        },
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
+            "namespace": "public",
+            "table": "recommendation"
           }
         },
         {

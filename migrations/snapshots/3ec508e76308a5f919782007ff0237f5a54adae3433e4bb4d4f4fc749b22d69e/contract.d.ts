@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'71cf221177ee58b4b3a61276d94a08c150c4139be5acf667d0bea74044885e24'>;
+  StorageHashBase<'3ec508e76308a5f919782007ff0237f5a54adae3433e4bb4d4f4fc749b22d69e'>;
 export type ExecutionHash =
   ExecutionHashBase<'5168a06e810857bf1c1b681ade43407db02dade1a5e43b35b4b8d337c8e5e76c'>;
 export type ProfileHash =
@@ -307,7 +307,7 @@ export type FieldOutputTypes = {
       readonly profilePicture: CodecTypes['pg/text@1']['output'] | null;
       readonly role: 'ADMIN' | 'COMMANDER' | 'OFFICER' | 'PERSONNEL';
       readonly twoFactorEnabled: CodecTypes['pg/bool@1']['output'];
-      readonly twoFactorPinHash: CodecTypes['pg/text@1']['output'] | null;
+      readonly twoFactorSecret: CodecTypes['pg/text@1']['output'] | null;
       readonly rank: CodecTypes['pg/text@1']['output'] | null;
       readonly personnelStatus: 'ACTIVE' | 'ON_LEAVE' | 'INACTIVE';
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
@@ -383,7 +383,7 @@ export type FieldInputTypes = {
       readonly profilePicture: CodecTypes['pg/text@1']['input'] | null;
       readonly role: 'ADMIN' | 'COMMANDER' | 'OFFICER' | 'PERSONNEL';
       readonly twoFactorEnabled: CodecTypes['pg/bool@1']['input'];
-      readonly twoFactorPinHash: CodecTypes['pg/text@1']['input'] | null;
+      readonly twoFactorSecret: CodecTypes['pg/text@1']['input'] | null;
       readonly rank: CodecTypes['pg/text@1']['input'] | null;
       readonly personnelStatus: 'ACTIVE' | 'ON_LEAVE' | 'INACTIVE';
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
@@ -461,7 +461,7 @@ export type StorageColumnTypes = {
       readonly rank: CodecTypes['pg/text@1']['output'] | null;
       readonly role: 'ADMIN' | 'COMMANDER' | 'OFFICER' | 'PERSONNEL';
       readonly twoFactorEnabled: CodecTypes['pg/bool@1']['output'];
-      readonly twoFactorPinHash: CodecTypes['pg/text@1']['output'] | null;
+      readonly twoFactorSecret: CodecTypes['pg/text@1']['output'] | null;
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly username: CodecTypes['pg/text@1']['output'] | null;
     };
@@ -537,7 +537,7 @@ export type StorageColumnInputTypes = {
       readonly rank: CodecTypes['pg/text@1']['input'] | null;
       readonly role: 'ADMIN' | 'COMMANDER' | 'OFFICER' | 'PERSONNEL';
       readonly twoFactorEnabled: CodecTypes['pg/bool@1']['input'];
-      readonly twoFactorPinHash: CodecTypes['pg/text@1']['input'] | null;
+      readonly twoFactorSecret: CodecTypes['pg/text@1']['input'] | null;
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly username: CodecTypes['pg/text@1']['input'] | null;
     };
@@ -1071,7 +1071,7 @@ type ContractBase = Omit<
                     readonly value: DefaultLiteralValue<'pg/bool@1', false>;
                   };
                 };
-                readonly twoFactorPinHash: {
+                readonly twoFactorSecret: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
@@ -1590,7 +1590,7 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
               };
-              readonly twoFactorPinHash: {
+              readonly twoFactorSecret: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
@@ -1694,7 +1694,7 @@ type ContractBase = Omit<
                 readonly profilePicture: { readonly column: 'profilePicture' };
                 readonly role: { readonly column: 'role' };
                 readonly twoFactorEnabled: { readonly column: 'twoFactorEnabled' };
-                readonly twoFactorPinHash: { readonly column: 'twoFactorPinHash' };
+                readonly twoFactorSecret: { readonly column: 'twoFactorSecret' };
                 readonly rank: { readonly column: 'rank' };
                 readonly personnelStatus: { readonly column: 'personnelStatus' };
                 readonly createdAt: { readonly column: 'createdAt' };

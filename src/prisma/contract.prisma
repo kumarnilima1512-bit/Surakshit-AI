@@ -29,6 +29,9 @@ model User {
   profilePicture  String?
   role            Role     @default(PERSONNEL)
 
+  twoFactorEnabled Boolean  @default(false)
+  twoFactorPinHash  String?
+  
   // Personnel information
   rank            String?
   personnelStatus PersonnelStatus @default(ACTIVE)
