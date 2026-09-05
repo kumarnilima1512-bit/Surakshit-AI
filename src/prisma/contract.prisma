@@ -21,6 +21,23 @@ model User {
   updatedAt temporal.updatedAtString()
 }
 
+model Unit {
+  id          Int      @id @default(autoincrement())
+  name        String
+  code        String   @unique
+  location    String?
+  description String?
+  createdAt   TimestamptzString @default(now())
+  updatedAt   temporal.updatedAtString()
+}
+
+model UnitAssignment {
+  id           Int      @id @default(autoincrement())
+  unitId       Int
+  personnelId  Int
+  assignedAt   TimestamptzString @default(now())
+}
+
 model Post {
   id        Int      @id @default(autoincrement())
   title     String
@@ -30,4 +47,24 @@ model Post {
 
   createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
+}
+
+model Assessment {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  stressScore Float
+  riskLevel   String
+
+  createdAt   TimestamptzString @default(now())
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+
+  createdAt TimestamptzString @default(now())
 }
