@@ -27,9 +27,12 @@ const loadSettings = async () => {
   success.value = ''
 
   try {
-    // Database/API will be connected later.
-    // const response = await $fetch(...)
-    // Object.assign(settings, response.settings)
+    // Database/API will be connected here.
+    const response = await $fetch<{
+      success: boolean
+      settings: typeof settings
+    }>('/api/admin/settings/general')
+    Object.assign(settings, response.settings)
   } catch (err) {
     console.error(err)
     error.value = 'Unable to load system settings'
@@ -44,11 +47,17 @@ const saveSettings = async () => {
   success.value = ''
 
   try {
-    // Database/API will be connected later.
-    // await $fetch('/api/admin/settings/general', {
-    //   method: 'PUT',
-    //   body: settings,
-    // })
+    // Database/API will be connected here.
+    await $fetch('/api/admin/settings/general', {
+      method: 'PUT',
+      body: {
+        systemName: settings.systemName,
+        timezone: settings.timezone,
+        notificationsEnabled: settings.notificationsEnabled,
+        maintenanceMode: settings.maintenanceMode,
+        sessionTimeout: settings.sessionTimeout,
+      },
+    })
 
     success.value = 'General settings saved successfully'
   } catch (err) {

@@ -25,9 +25,13 @@ const loadSettings = async () => {
   success.value = ''
 
   try {
-    // Database/API will be connected later.
-    // const response = await $fetch(...)
-    // Object.assign(settings, response.settings)
+    // Database/API will be connected here.
+    const response = await $fetch<{
+      success: boolean
+      settings: typeof settings
+    }>('/api/admin/settings/ml-model')
+
+    Object.assign(settings, response.settings)
   } catch (err) {
     console.error(err)
     error.value = 'Unable to load ML model settings'
@@ -42,11 +46,17 @@ const saveSettings = async () => {
   success.value = ''
 
   try {
-    // Database/API will be connected later.
-    // await $fetch('/api/admin/settings/ml-model', {
-    //   method: 'PUT',
-    //   body: settings,
-    // })
+    // Database/API will be connected here.
+    await $fetch('/api/admin/settings/ml-model', {
+      method: 'PUT',
+      body:{
+        modelName: settings.modelName,
+        modelVersion: settings.modelVersion,
+        endpoint: settings.endpoint,
+        threshold: settings.threshold,
+        enabled: settings.enabled,
+      },
+    })
 
     success.value = 'ML model settings saved successfully'
   } catch (err) {

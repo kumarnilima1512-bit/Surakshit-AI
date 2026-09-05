@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
 
 const DASHBOARD_API_URL = '/api/admin/dashboard'
 
@@ -225,6 +228,38 @@ const navSections = [
   },
 ]
 
+/* =========================================================
+   NAV -> ROUTE MAP
+========================================================= */
+
+const routeMap: Record<string, string> = {
+  'Dashboard': '/admin/dashboard',
+
+  // Users
+  'All Users': '/admin/users/all-users',
+  'Create User': '/admin/users/create-user',
+  'Roles & Permissions': '/admin/users/roles-permissions',
+
+  // Units
+  'All Units': '/admin/units/all-units',
+  'Assign Personnel': '/admin/units/assign-personnel',
+
+  // Analytics
+  'System Analytics': '/admin/analytics/system-analytics',
+  'Risk Trends': '/admin/analytics/risk-trends',
+  'Reports': '/admin/analytics/reports',
+
+  // Security
+  'Audit Logs': '/admin/security/audit-logs',
+  'Login History': '/admin/security/login-history',
+  'Failed Attempts': '/admin/security/failed-attempts',
+  '2FA Management': '/admin/security/2fa-management',
+
+  // System Settings
+  'General Settings': '/admin/settings/general-settings',
+  'ML Model Settings': '/admin/settings/ml-model-settings',
+}
+
 const openSections = ref<Record<string, boolean>>({
   Users: true,
   Units: true,
@@ -261,11 +296,13 @@ function selectNav(label: string) {
   closeDropdowns()
   closeMobileSidebar()
 
-  if (label === 'Dashboard') {
-    return
-  }
+  const path = routeMap[label]
 
-  showToast(`Opening "${label}"...`)
+  if (path) {
+    router.push(path)
+  } else {
+    showToast(`"${label}" এর জন্য কোনো route পাওয়া যায়নি`)
+  }
 }
 
 /* =========================================================
