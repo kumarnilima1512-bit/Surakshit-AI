@@ -7,6 +7,19 @@ enum Role {
   PERSONNEL
 }
 
+enum PersonnelStatus {
+  ACTIVE
+  ON_LEAVE
+  INACTIVE
+}
+
+enum RecommendationType {
+  SLEEP
+  ACTIVITY
+  WORKLOAD
+  SOCIAL
+}
+
 model User {
   id              Int      @id @default(autoincrement())
   email           String   @unique
@@ -16,7 +29,16 @@ model User {
   profilePicture  String?
   role            Role     @default(PERSONNEL)
 
+  // Personnel information
+  rank            String?
+  personnelStatus PersonnelStatus @default(ACTIVE)
+
   posts     Post[]
+  assessments Assessment[]
+  notifications Notification[]
+  unitAssignments UnitAssignment[]
+  followUps FollowUp[]
+  recommendations Recommendation[]
 
   createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
@@ -28,6 +50,9 @@ model Unit {
   code        String   @unique
   location    String?
   description String?
+
+  assignments UnitAssignment[]
+
   createdAt   TimestamptzString @default(now())
   updatedAt   temporal.updatedAtString()
 }
@@ -37,6 +62,9 @@ model UnitAssignment {
   unitId       Int
   personnelId  Int
   assignedAt   TimestamptzString @default(now())
+
+  unit      Unit @relation(fields: [unitId], references: [id])
+  personnel User @relation(fields: [personnelId], references: [id])
 }
 
 model Post {
@@ -56,6 +84,8 @@ model Assessment {
   stressScore Float
   riskLevel   String
 
+  user User @relation(fields: [userId], references: [id])
+
   createdAt   TimestamptzString @default(now())
 }
 
@@ -67,5 +97,33 @@ model Notification {
   type      String
   isRead    Boolean  @default(false)
 
+  user User @relation(fields: [userId], references: [id])
+
   createdAt TimestamptzString @default(now())
+}
+
+model FollowUp {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  scheduledAt  TimestamptzString
+  status       String   @default("SCHEDULED")
+  notes        String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt    TimestamptzString @default(now())
+}
+
+model Recommendation {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  type        RecommendationType
+  title       String
+  description String
+  isActive    Boolean  @default(true)
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt   TimestamptzString @default(now())
+  updatedAt   temporal.updatedAtString()
 }
