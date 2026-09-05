@@ -1,0 +1,7 @@
+{
+  "modelName": "Surakshit AI Stress Model",
+  "modelVersion": "1.0.0",
+  "endpoint": "http://127.0.0.1:8000/predict",
+  "threshold": "7.0",
+  "enabled": true
+}

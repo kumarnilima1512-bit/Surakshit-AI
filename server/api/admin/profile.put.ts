@@ -7,11 +7,12 @@ export default defineEventHandler(async (event) => {
   const body = await readBody<{
     name?: string
     username?: string
+    profilePicture?: string | null
   }>(event)
 
-  const existingUser = await db.orm.public.User.first({
-    id: user.userId,
-  })
+  const existingUser = await db.orm.public.User
+    .where({ id: user.userId })
+    .first()
 
   if (!existingUser) {
     throw createError({
@@ -30,10 +31,15 @@ export default defineEventHandler(async (event) => {
       ? body.username.trim() || null
       : existingUser.username
 
+  const profilePicture =
+    body.profilePicture !== undefined
+      ? body.profilePicture?.trim() || null
+      : existingUser.profilePicture
+
   if (username && username !== existingUser.username) {
-    const duplicate = await db.orm.public.User.first({
-      username,
-    })
+    const duplicate = await db.orm.public.User
+      .where({ username })
+      .first()
 
     if (duplicate && duplicate.id !== existingUser.id) {
       throw createError({
@@ -48,6 +54,7 @@ export default defineEventHandler(async (event) => {
     .update({
       name,
       username,
+      profilePicture,
     })
 
   if (!updatedUser) {
@@ -65,6 +72,7 @@ export default defineEventHandler(async (event) => {
       email: updatedUser.email,
       username: updatedUser.username,
       name: updatedUser.name,
+      profilePicture: updatedUser.profilePicture,
       role: updatedUser.role,
       createdAt: updatedUser.createdAt,
       updatedAt: updatedUser.updatedAt,

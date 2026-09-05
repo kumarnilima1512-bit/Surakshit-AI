@@ -6,12 +6,19 @@ export default defineEventHandler(async (event) => {
   return {
     success: true,
 
-    settings: {
-      systemName: 'Surakshit AI',
-      timezone: 'Asia/Kolkata',
-      notificationsEnabled: true,
-      maintenanceMode: false,
-      sessionTimeout: '30',
+    attempts: [],
+
+    summary: {
+      total: 0,
+      last24Hours: 0,
+      blocked: 0,
+    },
+
+    pagination: {
+      page: 1,
+      limit: 20,
+      total: 0,
+      totalPages: 0,
     },
   }
 })

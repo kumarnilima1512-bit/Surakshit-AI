@@ -1,62 +1,52 @@
 import { requireRole } from '../../../utils/authorization'
-import {
-  getGeneralSettings,
-  saveGeneralSettings,
-  type GeneralSettings,
-} from '../../../utils/system-settings'
 
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['ADMIN'])
 
-  const body = await readBody<Partial<GeneralSettings>>(event)
+  const body = await readBody(event)
 
-  const current = await getGeneralSettings()
+  const systemName = String(body?.systemName ?? '').trim()
+  const timezone = String(body?.timezone ?? '').trim()
+  const notificationsEnabled = Boolean(body?.notificationsEnabled)
+  const maintenanceMode = Boolean(body?.maintenanceMode)
+  const sessionTimeout = String(body?.sessionTimeout ?? '').trim()
 
-  const sessionTimeout =
-    body.sessionTimeout !== undefined
-      ? String(body.sessionTimeout).trim()
-      : current.sessionTimeout
-
-  if (
-    sessionTimeout !== '' &&
-    (!Number.isFinite(Number(sessionTimeout)) ||
-      Number(sessionTimeout) <= 0)
-  ) {
+  if (!systemName) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Session timeout must be a positive number',
+      statusMessage: 'System name is required',
     })
   }
 
-  const settings: GeneralSettings = {
-    systemName:
-      body.systemName !== undefined
-        ? body.systemName.trim() || current.systemName
-        : current.systemName,
-
-    timezone:
-      body.timezone !== undefined
-        ? body.timezone.trim() || current.timezone
-        : current.timezone,
-
-    notificationsEnabled:
-      body.notificationsEnabled !== undefined
-        ? Boolean(body.notificationsEnabled)
-        : current.notificationsEnabled,
-
-    maintenanceMode:
-      body.maintenanceMode !== undefined
-        ? Boolean(body.maintenanceMode)
-        : current.maintenanceMode,
-
-    sessionTimeout,
+  if (!timezone) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Timezone is required',
+    })
   }
 
-  const saved = await saveGeneralSettings(settings)
+  const timeoutNumber = Number(sessionTimeout)
+
+  if (
+    !Number.isFinite(timeoutNumber) ||
+    timeoutNumber < 1
+  ) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Session timeout must be at least 1 minute',
+    })
+  }
 
   return {
     success: true,
     message: 'General settings saved successfully',
-    settings: saved,
+
+    settings: {
+      systemName,
+      timezone,
+      notificationsEnabled,
+      maintenanceMode,
+      sessionTimeout: timeoutNumber.toString(),
+    },
   }
 })

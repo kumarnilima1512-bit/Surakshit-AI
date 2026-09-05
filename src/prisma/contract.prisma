@@ -8,12 +8,13 @@ enum Role {
 }
 
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  username  String?
-  name      String?
-  password  String
-  role      Role     @default(PERSONNEL)
+  id              Int      @id @default(autoincrement())
+  email           String   @unique
+  username        String?
+  name            String?
+  password        String
+  profilePicture  String?
+  role            Role     @default(PERSONNEL)
 
   posts     Post[]
 
