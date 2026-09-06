@@ -281,7 +281,12 @@ function trendPath(values: number[]) {
 }
 function pointXY(values: number[], i: number) {
   const stepX = trendW / Math.max(values.length - 1, 1)
-  return { x: i * stepX, y: trendH - (values[i] / trendMax) * trendH }
+  const value = values[i] ?? 0
+
+  return {
+    x: i * stepX,
+    y: trendH - (value / trendMax) * trendH,
+  }
 }
 
 const ICON_SIZE = 16
