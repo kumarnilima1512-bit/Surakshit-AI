@@ -13,7 +13,13 @@ const requiresTwoFactor = ref(false)
 
 const currentLang = useAppLanguage()
 const { t } = useTranslations(currentLang)
-
+const forces = [
+  { name: 'Army', logo: '/logos/indian-army-logo.png' },
+  { name: 'Navy', logo: '/logos/navy-logo.jpeg' },
+  { name: 'Air Force', logo: '/logos/air_force-logo.png' },
+  { name: 'Coast Guard', logo: '/logos/coast-guard-logo.png' },
+  { name: 'CAPFs', logo: '/logos/capf-logo.png' },
+]
 const roles = [
   { key: 'personnel', labelKey: 'role_personnel', icon: 'user' },
   { key: 'officer', labelKey: 'role_officer', icon: 'shield' },
@@ -137,34 +143,27 @@ const handleLogin = async () => {
       <div class="w-full max-w-xl text-white">
 
         <div class="mb-8 flex flex-wrap gap-8">
-          <div
-            v-for="force in ['Army', 'Navy', 'Air Force', 'Coast Guard', 'CAPFs']"
-            :key="force"
-            class="flex flex-col items-center gap-2"
-          >
-            <div
-              class="flex h-14 w-14 items-center justify-center rounded-full border border-white/30 bg-white/10 backdrop-blur-sm"
-            >
-              <svg
-                class="h-7 w-7 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="1.5"
-                  d="M12 2l7 4v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-4z"
-                />
-              </svg>
-            </div>
+  <div
+    v-for="force in forces"
+    :key="force.name"
+    class="flex flex-col items-center gap-2"
+  >
+    <div
+      class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/10 backdrop-blur-sm"
+    >
+      <img
+        :src="force.logo"
+        :alt="`${force.name} logo`"
+        class="h-full w-full object-contain p-1.5"
+      />
+    </div>
+    
 
-            <span class="text-[11px] font-semibold uppercase tracking-wide">
-              {{ force }}
-            </span>
-          </div>
-        </div>
+    <span class="text-[11px] font-semibold uppercase tracking-wide">
+      {{ force.name }}
+    </span>
+  </div>
+</div>
 
         <h1
           class="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl"
