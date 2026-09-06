@@ -124,19 +124,20 @@ function trendPath(values: number[]) {
 }
 function pointXY(values: number[], i: number) {
   const stepX = trendW / Math.max(values.length - 1, 1)
-  return { x: i * stepX, y: trendH - (values[i] / trendMax) * trendH }
+  const value = values[i] ?? 0
+  return { x: i * stepX, y: trendH - (value / trendMax) * trendH }
 }
 
 /* ---------------- Stacked risk-trend bar geometry ---------------- */
 const barChartH = 180
 function stackedTotal(t: MonthlyRiskTrend, i: number) {
-  return t.low[i] + t.moderate[i] + t.elevated[i] + t.high[i]
+  return (t.low[i] ?? 0) + (t.moderate[i] ?? 0) + (t.elevated[i] ?? 0) + (t.high[i] ?? 0)
 }
 function stackedMax(t: MonthlyRiskTrend) {
   return Math.max(1, ...t.labels.map((_, i) => stackedTotal(t, i)))
 }
-function segmentHeight(count: number, max: number) {
-  return (count / max) * 100
+function segmentHeight(count: number | undefined, max: number) {
+  return ((count ?? 0) / max) * 100
 }
 
 /* ---------------- Unit comparison bar geometry ---------------- */
