@@ -43,6 +43,7 @@ model User {
   followUps             FollowUp[]
   recommendations       Recommendation[]
   reports               Report[]
+  interventions         Intervention[]
 
   welfareNotes          WelfareNote[] @relation("PersonnelWelfareNotes")
   authoredWelfareNotes  WelfareNote[] @relation("WelfareNoteAuthors")
@@ -158,4 +159,19 @@ model Report {
   createdAt      TimestamptzString @default(now())
 
   commander User @relation(fields: [commanderId], references: [id])
+}
+
+model Intervention {
+  id              Int      @id @default(autoincrement())
+  userId          Int
+  type            String
+  status          String   @default("Pending")
+  assignedOfficerId Int
+  targetDate      TimestamptzString
+
+  user            User @relation(fields: [userId], references: [id])
+  assignedOfficer User @relation(fields: [assignedOfficerId], references: [id])
+
+  createdAt TimestamptzString @default(now())
+  updatedAt temporal.updatedAtString()
 }

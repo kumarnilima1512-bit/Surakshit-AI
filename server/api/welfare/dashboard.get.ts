@@ -1,45 +1,60 @@
-
 import { db } from '../../../src/prisma/db'
-import { requireRole } from '../../utils/authorization'
+import { getAuthUser } from '../../utils/auth-session'
 
 type RiskLevel = 'Low' | 'Moderate' | 'Elevated' | 'High'
 
-function getRisk(score: number): RiskLevel {
-  if (score < 3) return 'Low'
-  if (score < 5) return 'Moderate'
-  if (score < 7) return 'Elevated'
-  return 'High'
+const RISK_COLORS: Record<RiskLevel, string> = {
+  Low: '#34d399',
+  Moderate: '#60a5fa',
+  Elevated: '#fbbf24',
+  High: '#f87171',
 }
 
-function formatDate(date: string | Date): string {
-  return new Date(date).toLocaleString('en-IN', {
+function normalizeRiskLevel(riskLevel: string | null | undefined): RiskLevel {
+  const value = riskLevel?.toLowerCase()
+
+  if (value === 'high') return 'High'
+  if (value === 'elevated') return 'Elevated'
+  if (value === 'moderate') return 'Moderate'
+  return 'Low'
+}
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) return ''
+
+  return new Date(value).toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+  })
+}
+
+function formatTime(value: string | null | undefined): string {
+  if (!value) return ''
+
+  return new Date(value).toLocaleTimeString('en-GB', {
     hour: '2-digit',
     minute: '2-digit',
   })
 }
 
-function relativeTime(date: string | Date): string {
-  const diff = Date.now() - new Date(date).getTime()
-  const minutes = Math.floor(diff / 60000)
-
-  if (minutes < 1) return 'Just now'
-  if (minutes < 60) return `${minutes} min ago`
-
-  const hours = Math.floor(minutes / 60)
-  if (hours < 24) return `${hours} hr ago`
-
-  return `${Math.floor(hours / 24)} days ago`
+function dayKey(value: string): string {
+  return new Date(value).toISOString().slice(0, 10)
 }
 
 export default defineEventHandler(async (event) => {
-  const authUser = await requireRole(event, ['OFFICER'])
+  const authUser = await getAuthUser(event)
 
-  const officer = await db.orm.public.User
-    .where({ id: authUser.userId })
-    .first()
+  if (authUser.role !== 'OFFICER') {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Welfare officer access required',
+    })
+  }
+
+  const officer = await db.orm.public.User.where({
+    id: authUser.userId,
+  }).first()
 
   if (!officer) {
     throw createError({
@@ -48,333 +63,328 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const assignment = await db.orm.public.UnitAssignment
-    .where({ personnelId: authUser.userId })
-    .first()
+  const officerAssignments = await db.orm.public.UnitAssignment.where({
+    personnelId: officer.id,
+  }).all()
 
-  if (!assignment) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: 'No unit assigned',
-    })
-  }
+  const officerUnitIds = officerAssignments.map((assignment) => assignment.unitId)
 
-  const unit = await db.orm.public.Unit
-    .where({ id: assignment.unitId })
-    .first()
+  const units = await db.orm.public.Unit.all()
 
-  if (!unit) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: 'Assigned unit not found',
-    })
-  }
+  const primaryUnit = units.find((unit) => unit.id === officerUnitIds[0])
 
-  const assignments = await db.orm.public.UnitAssignment
-    .where({ unitId: unit.id })
-    .include('personnel')
-    .all()
+  const allAssignments = await db.orm.public.UnitAssignment.all()
 
-  const personnel = assignments.map((item) => item.personnel)
-  const personnelIds = personnel.map((item) => item.id)
-
-  const assessments = await db.orm.public.Assessment
-    .include('user')
-    .orderBy((item) => item.createdAt.desc())
-    .all()
-
-  const unitAssessments = assessments.filter(
-    (item) => personnelIds.includes(item.userId),
+  const personnelAssignments = allAssignments.filter(
+    (assignment) =>
+      officerUnitIds.includes(assignment.unitId) &&
+      assignment.personnelId !== officer.id,
   )
 
-  /* Latest assessment for each personnel */
-  const latest = new Map<number, (typeof unitAssessments)[number]>()
-
-  for (const assessment of unitAssessments) {
-    if (!latest.has(assessment.userId)) {
-      latest.set(assessment.userId, assessment)
-    }
-  }
-
-  const latestAssessments = [...latest.values()]
-
-  /* Risk distribution */
-  const counts: Record<RiskLevel, number> = {
-    Low: 0,
-    Moderate: 0,
-    Elevated: 0,
-    High: 0,
-  }
-
-  latestAssessments.forEach((assessment) => {
-    counts[getRisk(assessment.stressScore)]++
-  })
-
-  const totalAssessed = latestAssessments.length
-
-  const pct = (count: number) =>
-    totalAssessed
-      ? Number(((count / totalAssessed) * 100).toFixed(1))
-      : 0
-
-  const riskDistribution = [
-    { label: 'Low', count: counts.Low, pct: pct(counts.Low), color: '#34d399' },
-    { label: 'Moderate', count: counts.Moderate, pct: pct(counts.Moderate), color: '#60a5fa' },
-    { label: 'Elevated', count: counts.Elevated, pct: pct(counts.Elevated), color: '#fbbf24' },
-    { label: 'High', count: counts.High, pct: pct(counts.High), color: '#f87171' },
+  const personnelIds = [
+    ...new Set(personnelAssignments.map((assignment) => assignment.personnelId)),
   ]
 
-  /* High-risk personnel */
-  const highRiskPersonnel = latestAssessments
-    .filter((item) => getRisk(item.stressScore) === 'High')
-    .slice(0, 10)
-    .map((item) => ({
-      id: String(item.userId),
-      name: item.user.name ?? item.user.email,
-      unit: unit.name,
-      score: Number(item.stressScore.toFixed(2)),
-      riskLevel: 'High' as const,
-      lastAssessment: formatDate(item.createdAt),
-    }))
+  const allUsers = await db.orm.public.User.all()
 
-  /* Average stress */
-  const averageStress = unitAssessments.length
-    ? unitAssessments.reduce(
-        (sum, item) => sum + item.stressScore,
-        0,
-      ) / unitAssessments.length
-    : 0
-
-  /* Follow-ups / interventions */
-  const followUps = await db.orm.public.FollowUp.all()
-
-  const unitFollowUps = followUps.filter(
-    (item) => personnelIds.includes(item.userId),
+  const personnel = allUsers.filter(
+    (candidate) =>
+      personnelIds.includes(candidate.id) && candidate.role === 'PERSONNEL',
   )
 
-  const interventionCounts = {
-    Scheduled: 0,
-    Completed: 0,
-    Pending: 0,
-    Cancelled: 0,
+  const allAssessments = await db.orm.public.Assessment.all()
+  const allFollowUps = await db.orm.public.FollowUp.all()
+  const allRecommendations = await db.orm.public.Recommendation.all()
+  const officerNotifications = await db.orm.public.Notification.where({
+    userId: officer.id,
+  }).all()
+
+  function unitNameFor(personnelId: number): string {
+    const assignment = personnelAssignments.find(
+      (item) => item.personnelId === personnelId,
+    )
+    const unit = units.find((item) => item.id === assignment?.unitId)
+    return unit?.name ?? ''
   }
 
-  unitFollowUps.forEach((item) => {
-    const status = item.status.toUpperCase()
+  const personSummaries = personnel.map((person) => {
+    const personAssessments = allAssessments
+      .filter((assessment) => assessment.userId === person.id)
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
 
-    if (status === 'COMPLETED') interventionCounts.Completed++
-    else if (status === 'PENDING') interventionCounts.Pending++
-    else if (status === 'CANCELLED') interventionCounts.Cancelled++
-    else interventionCounts.Scheduled++
+    const latestAssessment = personAssessments[0]
+
+    const personFollowUps = allFollowUps
+      .filter((followUp) => followUp.userId === person.id)
+      .sort(
+        (a, b) =>
+          new Date(b.scheduledAt).getTime() - new Date(a.scheduledAt).getTime(),
+      )
+
+    const latestFollowUp = personFollowUps[0]
+
+    return {
+      person,
+      unitName: unitNameFor(person.id),
+      latestAssessment,
+      latestFollowUp,
+      riskLevel: normalizeRiskLevel(latestAssessment?.riskLevel),
+    }
   })
 
-  const totalInterventions = unitFollowUps.length
+  /* ---------------- Stat cards ---------------- */
+  const highRiskCount = personSummaries.filter((s) => s.riskLevel === 'High').length
+  const elevatedCount = personSummaries.filter((s) => s.riskLevel === 'Elevated').length
 
-  const interventionPct = (count: number) =>
-    totalInterventions
-      ? Number(((count / totalInterventions) * 100).toFixed(1))
-      : 0
+  const activeInterventions = allRecommendations.filter(
+    (rec) => rec.isActive && personnelIds.includes(rec.userId),
+  )
+  const completedInterventions = allRecommendations.filter(
+    (rec) => !rec.isActive && personnelIds.includes(rec.userId),
+  )
+
+  const now = Date.now()
+  const pendingFollowUps = allFollowUps.filter(
+    (followUp) =>
+      personnelIds.includes(followUp.userId) &&
+      followUp.status === 'SCHEDULED',
+  )
+  const overdueFollowUps = pendingFollowUps.filter(
+    (followUp) => new Date(followUp.scheduledAt).getTime() < now,
+  )
+
+  const weekAgo = now - 7 * 24 * 60 * 60 * 1000
+  const scopedAssessments = allAssessments.filter((assessment) =>
+    personnelIds.includes(assessment.userId),
+  )
+  const assessmentsThisWeek = scopedAssessments.filter(
+    (assessment) => new Date(assessment.createdAt).getTime() >= weekAgo,
+  )
+
+  const statCards = [
+    {
+      label: 'Total Personnel',
+      value: personnel.length,
+      icon: 'users' as const,
+      footerValue: `${officerUnitIds.length}`,
+      footerText: officerUnitIds.length === 1 ? 'unit under supervision' : 'units under supervision',
+      footerTone: 'neutral' as const,
+    },
+    {
+      label: 'High Risk Cases',
+      value: highRiskCount,
+      icon: 'alertTriangle' as const,
+      footerValue: `${elevatedCount}`,
+      footerText: 'also elevated',
+      footerTone: highRiskCount > 0 ? ('negative' as const) : ('positive' as const),
+      urgentText: highRiskCount > 0 ? `${highRiskCount} urgent` : undefined,
+    },
+    {
+      label: 'Active Interventions',
+      value: activeInterventions.length,
+      icon: 'shield' as const,
+      footerValue: `${completedInterventions.length}`,
+      footerText: 'completed',
+      footerTone: 'neutral' as const,
+    },
+    {
+      label: 'Pending Follow-ups',
+      value: pendingFollowUps.length,
+      icon: 'user' as const,
+      footerValue: `${overdueFollowUps.length}`,
+      footerText: 'overdue',
+      footerTone: overdueFollowUps.length > 0 ? ('negative' as const) : ('positive' as const),
+    },
+    {
+      label: 'Assessments This Week',
+      value: assessmentsThisWeek.length,
+      icon: 'alertCircle' as const,
+      footerValue: `${scopedAssessments.length}`,
+      footerText: 'all time',
+      footerTone: 'neutral' as const,
+    },
+  ]
+
+  /* ---------------- Risk distribution ---------------- */
+  const riskLevels: RiskLevel[] = ['Low', 'Moderate', 'Elevated', 'High']
+  const riskCounts = riskLevels.map((level) => ({
+    level,
+    count: personSummaries.filter((s) => s.riskLevel === level).length,
+  }))
+  const totalPersonnelForDonut = personnel.length
+
+  const riskDistribution = riskCounts.map(({ level, count }) => ({
+    label: level,
+    count,
+    pct: totalPersonnelForDonut
+      ? Math.round((count / totalPersonnelForDonut) * 1000) / 10
+      : 0,
+    color: RISK_COLORS[level],
+  }))
+
+  /* ---------------- Stress trend (last 7 days, unit-wide average) ---------------- */
+  const assessmentsByDay = new Map<string, number[]>()
+
+  for (const assessment of scopedAssessments) {
+    const key = dayKey(assessment.createdAt)
+    const scores = assessmentsByDay.get(key) ?? []
+    scores.push(assessment.stressScore)
+    assessmentsByDay.set(key, scores)
+  }
+
+  const sortedDayKeys = [...assessmentsByDay.keys()].sort()
+  const last7DayKeys = sortedDayKeys.slice(-7)
+
+  const stressTrend = {
+    labels: last7DayKeys.map((key) => formatDate(key)),
+    values: last7DayKeys.map((key) => {
+      const scores = assessmentsByDay.get(key) ?? []
+      const average = scores.reduce((sum, score) => sum + score, 0) / scores.length
+      return Math.round(average * 10) / 10
+    }),
+  }
+
+  /* ---------------- High-risk personnel table ---------------- */
+  const highRiskPersonnel = personSummaries
+    .filter((s) => s.riskLevel === 'High' || s.riskLevel === 'Elevated')
+    .sort(
+      (a, b) => (b.latestAssessment?.stressScore ?? 0) - (a.latestAssessment?.stressScore ?? 0),
+    )
+    .slice(0, 10)
+    .map((s) => ({
+      id: String(s.person.id),
+      name: s.person.name ?? '',
+      unit: s.unitName,
+      score: s.latestAssessment?.stressScore ?? 0,
+      riskLevel: s.riskLevel,
+      lastAssessment: formatDate(s.latestAssessment?.createdAt),
+    }))
+
+  /* ---------------- Intervention status donut ---------------- */
+  const totalInterventions = activeInterventions.length + completedInterventions.length
 
   const interventionStatus = [
     {
-      label: 'Scheduled',
-      count: interventionCounts.Scheduled,
-      pct: interventionPct(interventionCounts.Scheduled),
+      label: 'Active',
+      count: activeInterventions.length,
+      pct: totalInterventions
+        ? Math.round((activeInterventions.length / totalInterventions) * 1000) / 10
+        : 0,
       color: '#60a5fa',
     },
     {
       label: 'Completed',
-      count: interventionCounts.Completed,
-      pct: interventionPct(interventionCounts.Completed),
+      count: completedInterventions.length,
+      pct: totalInterventions
+        ? Math.round((completedInterventions.length / totalInterventions) * 1000) / 10
+        : 0,
       color: '#34d399',
-    },
-    {
-      label: 'Pending',
-      count: interventionCounts.Pending,
-      pct: interventionPct(interventionCounts.Pending),
-      color: '#fbbf24',
-    },
-    {
-      label: 'Cancelled',
-      count: interventionCounts.Cancelled,
-      pct: interventionPct(interventionCounts.Cancelled),
-      color: '#f87171',
     },
   ]
 
-  /* Recent assessments */
-  const recentAssessments = unitAssessments
-    .slice(0, 8)
-    .map((item) => ({
-      dateTime: formatDate(item.createdAt),
-      personnelId: String(item.userId),
-      score: Number(item.stressScore.toFixed(2)),
-      riskLevel: getRisk(item.stressScore),
+  /* ---------------- Recent assessments (unit-wide) ---------------- */
+  const recentAssessments = [...scopedAssessments]
+    .sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .slice(0, 10)
+    .map((assessment) => ({
+      dateTime: `${formatDate(assessment.createdAt)} ${formatTime(assessment.createdAt)}`,
+      personnelId: String(assessment.userId),
+      score: assessment.stressScore,
+      riskLevel: normalizeRiskLevel(assessment.riskLevel),
     }))
 
-  /* Stress trend - last 6 months */
-  const months = Array.from({ length: 6 }, (_, index) => {
-    const date = new Date()
-    date.setMonth(date.getMonth() - (5 - index))
+  /* ---------------- Welfare recommendations (top 5 active) ---------------- */
+  const recommendationIconMap = {
+    SLEEP: 'sleep' as const,
+    ACTIVITY: 'activity' as const,
+    WORKLOAD: 'workload' as const,
+    SOCIAL: 'social' as const,
+  }
+
+  const welfareRecommendations = allRecommendations
+    .filter((rec) => rec.isActive && personnelIds.includes(rec.userId))
+    .sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+    )
+    .slice(0, 5)
+    .map((rec) => {
+      const owner = personSummaries.find((s) => s.person.id === rec.userId)
+
+      return {
+        title: rec.title,
+        description: rec.description,
+        priority: owner?.riskLevel ?? 'Low',
+        icon: recommendationIconMap[rec.type],
+      }
+    })
+
+  /* ---------------- Recent alerts ---------------- */
+  const highRiskAlerts = personSummaries
+    .filter((s) => s.riskLevel === 'High' && s.latestAssessment)
+    .map((s) => ({
+      title: `${s.person.name ?? 'Personnel'} flagged High Risk`,
+      detail: `Latest stress score ${s.latestAssessment?.stressScore} in ${s.unitName || 'unit'}`,
+      time: formatDate(s.latestAssessment?.createdAt),
+      timestamp: new Date(s.latestAssessment?.createdAt ?? 0).getTime(),
+      tone: 'red' as const,
+    }))
+
+  const overdueAlerts = overdueFollowUps.map((followUp) => {
+    const owner = personSummaries.find((s) => s.person.id === followUp.userId)
 
     return {
-      year: date.getFullYear(),
-      month: date.getMonth(),
-      label: date.toLocaleString('en-US', { month: 'short' }),
-      values: [] as number[],
+      title: `Follow-up overdue for ${owner?.person.name ?? 'personnel'}`,
+      detail: `Was scheduled for ${formatDate(followUp.scheduledAt)}`,
+      time: formatDate(followUp.scheduledAt),
+      timestamp: new Date(followUp.scheduledAt).getTime(),
+      tone: 'amber' as const,
     }
   })
 
-  unitAssessments.forEach((item) => {
-    const date = new Date(item.createdAt)
+  const recentAlerts = [...highRiskAlerts, ...overdueAlerts]
+    .sort((a, b) => b.timestamp - a.timestamp)
+    .slice(0, 5)
+    .map(({ title, detail, time, tone }) => ({ title, detail, time, tone }))
 
-    const month = months.find(
-      (m) =>
-        m.year === date.getFullYear() &&
-        m.month === date.getMonth(),
+  /* ---------------- Notifications ---------------- */
+  const notifications = [...officerNotifications]
+    .sort(
+      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
     )
-
-    if (month) month.values.push(item.stressScore)
-  })
-
-  const stressTrend = {
-    labels: months.map((m) => m.label),
-    values: months.map((m) =>
-      m.values.length
-        ? Number(
-            (
-              m.values.reduce((a, b) => a + b, 0) /
-              m.values.length
-            ).toFixed(2),
-          )
-        : 0,
-    ),
-  }
-
-  /* Recommendations */
-  const recommendations = await db.orm.public.Recommendation
-    .where({ isActive: true })
-    .orderBy((item) => item.createdAt.desc())
-    .limit(5)
-    .all()
-
-  const welfareRecommendations = recommendations
-    .filter((item) => personnelIds.includes(item.userId))
-    .map((item) => ({
-      title: item.title,
-      description: item.description,
-      priority: 'Moderate' as RiskLevel,
-      icon: item.type.toLowerCase() as
-        | 'sleep'
-        | 'activity'
-        | 'workload'
-        | 'social',
+    .slice(0, 8)
+    .map((notification) => ({
+      id: String(notification.id),
+      title: notification.title,
+      timeLabel: formatDate(notification.createdAt),
+      read: notification.isRead,
     }))
-
-  /* Notifications */
-  const notifications = await db.orm.public.Notification
-    .where({ userId: authUser.userId })
-    .orderBy((item) => item.createdAt.desc())
-    .limit(10)
-    .all()
 
   return {
     officer: {
-      name: officer.name ?? officer.username ?? officer.email,
-      role: officer.rank ?? 'Welfare Officer',
-      unitName: unit.name,
-      unitCode: unit.code,
-      lastLoginLabel: 'Not available',
+      name: officer.name ?? '',
+      role: 'Welfare Officer',
+      unitName: primaryUnit?.name ?? '',
+      unitCode: primaryUnit?.code ?? '',
+      lastLoginLabel: formatDate(officer.updatedAt),
       avatarUrl: officer.profilePicture ?? null,
     },
-
-    statCards: [
-      {
-        label: 'Total Personnel',
-        value: personnel.length,
-        icon: 'users',
-        footerValue: String(personnel.length),
-        footerText: 'assigned to unit',
-        footerTone: 'neutral',
-      },
-      {
-        label: 'Average Stress',
-        value: averageStress.toFixed(1),
-        icon: 'shield',
-        footerValue: 'out of 10',
-        footerText: '',
-        footerTone: 'neutral',
-      },
-      {
-        label: 'High-Risk Cases',
-        value: counts.High,
-        icon: 'alertTriangle',
-        footerValue: `${pct(counts.High)}%`,
-        footerText: 'of assessed personnel',
-        footerTone: counts.High ? 'negative' : 'positive',
-        urgentText: counts.High
-          ? `${counts.High} urgent`
-          : undefined,
-      },
-      {
-        label: 'Active Interventions',
-        value:
-          interventionCounts.Scheduled +
-          interventionCounts.Pending,
-        icon: 'user',
-        footerValue: String(interventionCounts.Pending),
-        footerText: 'pending',
-        footerTone: interventionCounts.Pending
-          ? 'negative'
-          : 'positive',
-      },
-      {
-        label: 'Assessments',
-        value: unitAssessments.length,
-        icon: 'alertCircle',
-        footerValue: String(unitAssessments.length),
-        footerText: 'recorded',
-        footerTone: 'neutral',
-      },
-    ],
-
+    statCards,
     riskDistribution,
-    totalPersonnelForDonut: personnel.length,
-    riskDistributionScopeLabel: unit.name,
-
+    totalPersonnelForDonut,
+    riskDistributionScopeLabel: 'This Month',
     stressTrend,
-    trendRangeLabel: 'Last 6 months',
-
+    trendRangeLabel: 'Last 7 Days',
     highRiskPersonnel,
-
     interventionStatus,
     totalInterventions,
-
     recentAssessments,
-
     welfareRecommendations,
-
-    recentAlerts: unitAssessments
-      .filter((item) => {
-        const risk = getRisk(item.stressScore)
-        return risk === 'High' || risk === 'Elevated'
-      })
-      .slice(0, 5)
-      .map((item) => ({
-        title: `${getRisk(item.stressScore)} stress detected`,
-        detail: `${item.user.name ?? item.user.email} scored ${item.stressScore.toFixed(1)}/10.`,
-        time: relativeTime(item.createdAt),
-        tone: getRisk(item.stressScore) === 'High'
-          ? 'red' as const
-          : 'amber' as const,
-      })),
-
-    notifications: notifications.map((item) => ({
-      id: String(item.id),
-      title: item.title,
-      timeLabel: relativeTime(item.createdAt),
-      read: item.isRead,
-    })),
+    recentAlerts,
+    notifications,
   }
 })
-

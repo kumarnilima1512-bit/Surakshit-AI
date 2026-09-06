@@ -20,24 +20,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const body = await readBody<{ date?: string }>(event)
-
-  if (!body.date) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Follow-up date is required',
-    })
-  }
-
-  const scheduledAt = new Date(body.date)
-
-  if (Number.isNaN(scheduledAt.getTime())) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Invalid follow-up date',
-    })
-  }
-
   const officer = await db.orm.public.User.where({
     id: authUser.userId,
   }).first()
@@ -81,11 +63,21 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await db.orm.public.FollowUp.create({
+  const existingRecommendations = await db.orm.public.Recommendation.where({
     userId: personnel.id,
-    scheduledAt: scheduledAt.toISOString(),
-    status: 'SCHEDULED',
-  })
+  }).all()
+
+  const alreadyActive = existingRecommendations.some((rec) => rec.isActive)
+
+  if (!alreadyActive) {
+    await db.orm.public.Recommendation.create({
+      userId: personnel.id,
+      type: 'WORKLOAD',
+      title: 'Welfare Intervention',
+      description: 'Intervention started by welfare officer.',
+      isActive: true,
+    })
+  }
 
   return {
     ok: true,

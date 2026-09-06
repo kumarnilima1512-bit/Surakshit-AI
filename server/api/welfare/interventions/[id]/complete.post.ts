@@ -16,25 +16,7 @@ export default defineEventHandler(async (event) => {
   if (!Number.isInteger(id) || id <= 0) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Invalid personnel ID',
-    })
-  }
-
-  const body = await readBody<{ date?: string }>(event)
-
-  if (!body.date) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Follow-up date is required',
-    })
-  }
-
-  const scheduledAt = new Date(body.date)
-
-  if (Number.isNaN(scheduledAt.getTime())) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Invalid follow-up date',
+      statusMessage: 'Invalid intervention ID',
     })
   }
 
@@ -57,34 +39,34 @@ export default defineEventHandler(async (event) => {
 
   const allAssignments = await db.orm.public.UnitAssignment.all()
 
+  const recommendation = await db.orm.public.Recommendation.where({
+    id,
+  }).first()
+
+  if (!recommendation) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Intervention not found',
+    })
+  }
+
   const belongsToOfficerUnit = allAssignments.some(
     (assignment) =>
-      assignment.personnelId === id &&
+      assignment.personnelId === recommendation.userId &&
       officerUnitIds.includes(assignment.unitId),
   )
 
   if (!belongsToOfficerUnit) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Personnel not found in your unit',
+      statusMessage: 'Intervention not found',
     })
   }
 
-  const personnel = await db.orm.public.User.where({
+  await db.orm.public.Recommendation.where({
     id,
-  }).first()
-
-  if (!personnel || personnel.role !== 'PERSONNEL') {
-    throw createError({
-      statusCode: 404,
-      statusMessage: 'Personnel not found',
-    })
-  }
-
-  await db.orm.public.FollowUp.create({
-    userId: personnel.id,
-    scheduledAt: scheduledAt.toISOString(),
-    status: 'SCHEDULED',
+  }).update({
+    isActive: false,
   })
 
   return {

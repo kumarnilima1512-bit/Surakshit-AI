@@ -1,5 +1,15 @@
-import { db } from '../../../../../src/prisma/db'
-import { getAuthUser } from '../../../../utils/auth-session'
+import { db } from '../../../../src/prisma/db'
+import { getAuthUser } from '../../../utils/auth-session'
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) return ''
+
+  return new Date(value).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
 
 export default defineEventHandler(async (event) => {
   const authUser = await getAuthUser(event)
@@ -11,30 +21,38 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const id = Number(getRouterParam(event, 'id'))
+  const body = await readBody<{
+    personnelId?: string
+    type?: string
+    dueDate?: string
+  }>(event)
 
-  if (!Number.isInteger(id) || id <= 0) {
+  const personnelIdRaw = body.personnelId?.trim()
+  const dueDate = body.dueDate?.trim()
+  const type = body.type?.trim() || 'Welfare Check-in'
+
+  if (!personnelIdRaw || !dueDate) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Personnel ID and due date are required',
+    })
+  }
+
+  const personnelId = Number(personnelIdRaw.replace(/\D/g, ''))
+
+  if (!Number.isInteger(personnelId) || personnelId <= 0) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Invalid personnel ID',
     })
   }
 
-  const body = await readBody<{ date?: string }>(event)
-
-  if (!body.date) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Follow-up date is required',
-    })
-  }
-
-  const scheduledAt = new Date(body.date)
+  const scheduledAt = new Date(dueDate)
 
   if (Number.isNaN(scheduledAt.getTime())) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Invalid follow-up date',
+      statusMessage: 'Invalid due date',
     })
   }
 
@@ -59,7 +77,7 @@ export default defineEventHandler(async (event) => {
 
   const belongsToOfficerUnit = allAssignments.some(
     (assignment) =>
-      assignment.personnelId === id &&
+      assignment.personnelId === personnelId &&
       officerUnitIds.includes(assignment.unitId),
   )
 
@@ -71,7 +89,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const personnel = await db.orm.public.User.where({
-    id,
+    id: personnelId,
   }).first()
 
   if (!personnel || personnel.role !== 'PERSONNEL') {
@@ -81,13 +99,28 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await db.orm.public.FollowUp.create({
+  const units = await db.orm.public.Unit.all()
+  const assignment = allAssignments.find(
+    (item) =>
+      item.personnelId === personnel.id &&
+      officerUnitIds.includes(item.unitId),
+  )
+  const unit = units.find((item) => item.id === assignment?.unitId)
+
+  const created = await db.orm.public.FollowUp.create({
     userId: personnel.id,
     scheduledAt: scheduledAt.toISOString(),
     status: 'SCHEDULED',
+    notes: type,
   })
 
   return {
-    ok: true,
+    id: String(created.id),
+    personnelId: String(personnel.id),
+    personnelName: personnel.name ?? '',
+    unit: unit?.name ?? '',
+    type,
+    dueDate: formatDate(created.scheduledAt),
+    status: 'Upcoming' as const,
   }
 })
