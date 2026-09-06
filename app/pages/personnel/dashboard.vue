@@ -217,7 +217,7 @@ interface QuickAction {
 }
 
 const quickActions: QuickAction[] = [
-  { title: 'Take New Assessment', sub: 'Update your current stress level', icon: Zap, tone: 'green', to: '/personnel/assessment/new' },
+  { title: 'Take New Assessment', sub: 'Update your current stress level', icon: Zap, tone: 'green', to: '/personnel/assessment' },
   { title: 'View My History', sub: 'Check past assessments', icon: BarChart2, tone: 'blue', to: '/personnel/history' },
   { title: 'View Recommendations', sub: 'Get personalized suggestions', icon: FileText, tone: 'violet', to: '/personnel/recommendations' },
   { title: 'Update Profile', sub: 'Manage your account details', icon: User, tone: 'slate', to: '/personnel/profile' },

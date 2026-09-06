@@ -7,18 +7,67 @@ enum Role {
   PERSONNEL
 }
 
+enum PersonnelStatus {
+  ACTIVE
+  ON_LEAVE
+  INACTIVE
+}
+
+enum RecommendationType {
+  SLEEP
+  ACTIVITY
+  WORKLOAD
+  SOCIAL
+}
+
 model User {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  username  String?
-  name      String?
-  password  String
-  role      Role     @default(PERSONNEL)
+  id              Int      @id @default(autoincrement())
+  email           String   @unique
+  username        String?
+  name            String?
+  password        String
+  profilePicture  String?
+  role            Role     @default(PERSONNEL)
+
+  twoFactorEnabled Boolean  @default(false)
+  twoFactorPinHash  String?
+  
+  // Personnel information
+  rank            String?
+  personnelStatus PersonnelStatus @default(ACTIVE)
 
   posts     Post[]
+  assessments Assessment[]
+  notifications Notification[]
+  unitAssignments UnitAssignment[]
+  followUps FollowUp[]
+  recommendations Recommendation[]
 
   createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
+}
+
+model Unit {
+  id          Int      @id @default(autoincrement())
+  name        String
+  code        String   @unique
+  location    String?
+  description String?
+
+  assignments UnitAssignment[]
+
+  createdAt   TimestamptzString @default(now())
+  updatedAt   temporal.updatedAtString()
+}
+
+model UnitAssignment {
+  id           Int      @id @default(autoincrement())
+  unitId       Int
+  personnelId  Int
+  assignedAt   TimestamptzString @default(now())
+
+  unit      Unit @relation(fields: [unitId], references: [id])
+  personnel User @relation(fields: [personnelId], references: [id])
 }
 
 model Post {
@@ -30,4 +79,54 @@ model Post {
 
   createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
+}
+
+model Assessment {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  stressScore Float
+  riskLevel   String
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt   TimestamptzString @default(now())
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  message   String
+  type      String
+  isRead    Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt TimestamptzString @default(now())
+}
+
+model FollowUp {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  scheduledAt  TimestamptzString
+  status       String   @default("SCHEDULED")
+  notes        String?
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt    TimestamptzString @default(now())
+}
+
+model Recommendation {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  type        RecommendationType
+  title       String
+  description String
+  isActive    Boolean  @default(true)
+
+  user User @relation(fields: [userId], references: [id])
+
+  createdAt   TimestamptzString @default(now())
+  updatedAt   temporal.updatedAtString()
 }

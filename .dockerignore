@@ -1,0 +1,43 @@
+# Nuxt
+.nuxt/
+.output/
+.nitro/
+.cache/
+dist/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+.fleet/
+
+# Python
+.venv/
+ml-service/.venv/
+__pycache__/
+*.pyc
+
+# ML cache
+ml-service/__pycache__/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
