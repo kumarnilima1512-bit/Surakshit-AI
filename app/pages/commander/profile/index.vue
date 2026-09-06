@@ -137,7 +137,11 @@ const ICON_SIZE = 16
     <aside class="flex w-64 shrink-0 flex-col border-r border-white/5 bg-[#0d1526]">
       <div class="flex items-center gap-3 px-5 py-5">
         <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
-          <ShieldCheck :size="19" :stroke-width="1.5" />
+         <img
+  src="/logos/surakshit-ai.png"
+  alt="Surakshit AI"
+  class="h-10 w-10 object-contain"
+/>
         </div>
         <div>
           <p class="text-sm font-bold leading-tight text-white">Surakshit AI</p>
