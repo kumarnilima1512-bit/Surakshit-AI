@@ -276,10 +276,11 @@ async function logout() {
           <div
             class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600/15 text-blue-400"
           >
-            <ShieldCheck
-              :size="22"
-              :stroke-width="1.5"
-            />
+            <img
+  src="/logos/surakshit-ai.png"
+  alt="Surakshit AI"
+  class="h-16 w-16 object-contain"
+/>
           </div>
 
           <div>

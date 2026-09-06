@@ -74,11 +74,11 @@ const initials = computed(() => {
       <div class="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <div>
           <div class="flex items-center gap-2">
-            <ShieldCheck
-              :size="20"
-              :stroke-width="1.5"
-              class="text-blue-400"
-            />
+            <img
+  src="/logos/surakshit-ai.png"
+  alt="Surakshit AI"
+  class="h-16 w-16 object-contain"
+/>
             <h1 class="text-lg font-bold text-white">My Profile</h1>
           </div>
 

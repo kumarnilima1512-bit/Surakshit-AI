@@ -642,29 +642,11 @@ onUnmounted(() => {
         <div
           class="flex min-h-[72px] items-center gap-3 border-b border-white/5 px-5"
         >
-          <div
-            class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400"
-          >
-            <svg
-              class="h-4.5 w-4.5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M12 2l7 4v6c0 5-3.5 8.5-7 10-3.5-1.5-7-5-7-10V6l7-4z"
-              />
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="1.5"
-                d="M9.5 12l1.8 1.8L14.5 10"
-              />
-            </svg>
-          </div>
+          <img
+  src="/logos/surakshit-ai.png"
+  alt="Surakshit AI"
+  class="h-16 w-16 object-contain"
+/>
 
           <div class="min-w-0 flex-1">
             <p class="text-sm font-bold leading-tight text-white">

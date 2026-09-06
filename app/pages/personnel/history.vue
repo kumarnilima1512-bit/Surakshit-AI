@@ -177,7 +177,11 @@ const lowestStress = computed(() => {
         <div
           class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400"
         >
-          <ShieldCheck :size="20" :stroke-width="1.5" />
+          <img
+  src="/logos/surakshit-ai.png"
+  alt="Surakshit AI"
+  class="h-16 w-16 object-contain"
+/>
         </div>
 
 ```
