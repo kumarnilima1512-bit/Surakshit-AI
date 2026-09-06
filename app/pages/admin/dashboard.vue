@@ -68,6 +68,7 @@ interface HealthService {
 
 interface DashboardData {
   adminName: string
+  adminAvatarUrl: string | null
   statCards: StatCard[]
   stressTrend: TrendPoint[]
   avgStressScore: number
@@ -130,6 +131,12 @@ async function fetchDashboard() {
         response.adminName ??
         response.user?.name ??
         'System Administrator',
+
+      adminAvatarUrl:
+        typeof response.adminAvatarUrl === 'string' &&
+        response.adminAvatarUrl.length > 0
+          ? response.adminAvatarUrl
+          : null,
 
       statCards: Array.isArray(response.statCards)
         ? response.statCards
@@ -260,6 +267,15 @@ const routeMap: Record<string, string> = {
   'ML Model Settings': '/admin/settings/ml-model-settings',
 }
 
+/* =========================================================
+   PROFILE MENU -> ROUTE MAP
+========================================================= */
+
+const profileActionRouteMap: Record<string, string> = {
+  'Profile': '/admin/profile',
+  'Account Settings': '/admin/account-settings',
+}
+
 const openSections = ref<Record<string, boolean>>({
   Users: true,
   Units: true,
@@ -301,7 +317,7 @@ function selectNav(label: string) {
   if (path) {
     router.push(path)
   } else {
-    showToast(`"${label}" এর জন্য কোনো route পাওয়া যায়নি`)
+    showToast(`No route found for "${label}"`)
   }
 }
 
@@ -345,11 +361,18 @@ function toggleProfileMenu() {
 function handleProfileAction(action: string) {
   closeDropdowns()
 
-  showToast(
-    action === 'Logout'
-      ? 'Logged out successfully'
-      : `Opening ${action}...`,
-  )
+  if (action === 'Logout') {
+    showToast('Logged out successfully')
+    return
+  }
+
+  const path = profileActionRouteMap[action]
+
+  if (path) {
+    router.push(path)
+  } else {
+    showToast(`No route found for "${action}"`)
+  }
 }
 
 function closeDropdowns() {
@@ -1077,9 +1100,17 @@ onUnmounted(() => {
                   @click.stop="toggleProfileMenu"
                 >
                   <div
-                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-700"
+                    class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-700"
                   >
+                    <img
+                      v-if="data?.adminAvatarUrl"
+                      :src="data.adminAvatarUrl"
+                      alt="Profile picture"
+                      class="h-full w-full object-cover"
+                    >
+
                     <svg
+                      v-else
                       class="h-4 w-4 text-slate-300"
                       fill="none"
                       stroke="currentColor"

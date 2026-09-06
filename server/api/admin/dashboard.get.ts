@@ -69,6 +69,15 @@ export default defineEventHandler(async (event) => {
     db.orm.public.Assessment.all(),
   ])
 
+  const adminRecord = users.find((u) => u.id === user.userId)
+
+  const resolvedAdminName =
+    adminRecord?.name ||
+    adminRecord?.email ||
+    'System Administrator'
+
+  const resolvedAdminAvatar = adminRecord?.profilePicture || null
+
   const personnel = users.filter(
     (u) => u.role === 'PERSONNEL'
   )
@@ -348,7 +357,9 @@ export default defineEventHandler(async (event) => {
       role: user.role,
     },
 
-    adminName: 'System Administrator',
+    adminName: resolvedAdminName,
+
+    adminAvatarUrl: resolvedAdminAvatar,
 
     statCards: [
       {

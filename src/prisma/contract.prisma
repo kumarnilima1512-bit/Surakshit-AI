@@ -30,18 +30,22 @@ model User {
   role            Role     @default(PERSONNEL)
 
   twoFactorEnabled Boolean  @default(false)
-  twoFactorPinHash  String?
-  
+  twoFactorPinHash String?
+
   // Personnel information
   rank            String?
   personnelStatus PersonnelStatus @default(ACTIVE)
 
-  posts     Post[]
-  assessments Assessment[]
-  notifications Notification[]
-  unitAssignments UnitAssignment[]
-  followUps FollowUp[]
-  recommendations Recommendation[]
+  posts                 Post[]
+  assessments           Assessment[]
+  notifications         Notification[]
+  unitAssignments       UnitAssignment[]
+  followUps             FollowUp[]
+  recommendations       Recommendation[]
+  reports               Report[]
+
+  welfareNotes          WelfareNote[] @relation("PersonnelWelfareNotes")
+  authoredWelfareNotes  WelfareNote[] @relation("WelfareNoteAuthors")
 
   createdAt TimestamptzString @default(now())
   updatedAt temporal.updatedAtString()
@@ -97,12 +101,12 @@ model Notification {
   userId    Int
   title     String
   message   String
-  type      String
+  type       String
   isRead    Boolean  @default(false)
 
   user User @relation(fields: [userId], references: [id])
 
-  createdAt TimestamptzString @default(now())
+  createdAt   TimestamptzString @default(now())
 }
 
 model FollowUp {
@@ -129,4 +133,29 @@ model Recommendation {
 
   createdAt   TimestamptzString @default(now())
   updatedAt   temporal.updatedAtString()
+}
+
+model WelfareNote {
+  id          Int      @id @default(autoincrement())
+  personnelId Int
+  authorId    Int
+  text        String
+
+  personnel User @relation("PersonnelWelfareNotes", fields: [personnelId], references: [id])
+  author    User @relation("WelfareNoteAuthors", fields: [authorId], references: [id])
+
+  createdAt TimestamptzString @default(now())
+}
+
+model Report {
+  id             Int      @id @default(autoincrement())
+  commanderId    Int
+  type           String
+  name           String
+  fromDate       TimestamptzString
+  toDate         TimestamptzString
+  downloadUrl    String
+  createdAt      TimestamptzString @default(now())
+
+  commander User @relation(fields: [commanderId], references: [id])
 }
