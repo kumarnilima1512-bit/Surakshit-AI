@@ -183,8 +183,6 @@ const lowestStress = computed(() => {
   class="h-16 w-16 object-contain"
 />
         </div>
-
-```
     <div>
       <p class="text-sm font-bold leading-tight text-white">
         Surakshit AI
