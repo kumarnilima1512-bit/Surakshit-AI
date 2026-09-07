@@ -1,5 +1,4 @@
 // use prisma-next
-
 enum Role {
   ADMIN
   COMMANDER
@@ -21,20 +20,20 @@ enum RecommendationType {
 }
 
 model User {
-  id              Int      @id @default(autoincrement())
-  email           String   @unique
-  username        String?
-  name            String?
-  password        String
-  profilePicture  String?
-  role            Role     @default(PERSONNEL)
+  id                    Int                        @id @default(autoincrement())
+  email                 String                     @unique
+  username              String?
+  name                  String?
+  password              String
+  profilePicture        String?
+  role                  Role                       @default(PERSONNEL)
 
-  twoFactorEnabled Boolean  @default(false)
-  twoFactorPinHash String?
+  twoFactorEnabled      Boolean                    @default(false)
+  twoFactorPinHash      String?
 
   // Personnel information
-  rank            String?
-  personnelStatus PersonnelStatus @default(ACTIVE)
+  rank                  String?
+  personnelStatus       PersonnelStatus            @default(ACTIVE)
 
   posts                 Post[]
   assessments           Assessment[]
@@ -43,135 +42,136 @@ model User {
   followUps             FollowUp[]
   recommendations       Recommendation[]
   reports               Report[]
-  interventions         Intervention[]
+  interventions         Intervention[]             @relation("PersonnelInterventions")
+  assignedInterventions Intervention[]             @relation("AssignedInterventions")
 
-  welfareNotes          WelfareNote[] @relation("PersonnelWelfareNotes")
-  authoredWelfareNotes  WelfareNote[] @relation("WelfareNoteAuthors")
+  welfareNotes          WelfareNote[]              @relation("PersonnelWelfareNotes")
+  authoredWelfareNotes  WelfareNote[]              @relation("WelfareNoteAuthors")
 
-  createdAt TimestamptzString @default(now())
-  updatedAt temporal.updatedAtString()
+  createdAt             TimestamptzString          @default(now())
+  updatedAt             temporal.updatedAtString()
 }
 
 model Unit {
-  id          Int      @id @default(autoincrement())
+  id          Int                        @id @default(autoincrement())
   name        String
-  code        String   @unique
+  code        String                     @unique
   location    String?
   description String?
 
   assignments UnitAssignment[]
 
-  createdAt   TimestamptzString @default(now())
+  createdAt   TimestamptzString          @default(now())
   updatedAt   temporal.updatedAtString()
 }
 
 model UnitAssignment {
-  id           Int      @id @default(autoincrement())
-  unitId       Int
-  personnelId  Int
-  assignedAt   TimestamptzString @default(now())
+  id          Int               @id @default(autoincrement())
+  unitId      Int
+  personnelId Int
+  assignedAt  TimestamptzString @default(now())
 
-  unit      Unit @relation(fields: [unitId], references: [id])
-  personnel User @relation(fields: [personnelId], references: [id])
+  unit        Unit              @relation(fields:[unitId], references:[id])
+  personnel   User              @relation(fields:[personnelId], references:[id])
 }
 
 model Post {
-  id        Int      @id @default(autoincrement())
+  id        Int                        @id @default(autoincrement())
   title     String
   content   String?
-  author    User     @relation(fields: [authorId], references: [id])
+  author    User                       @relation(fields:[authorId], references:[id])
   authorId  Int
 
-  createdAt TimestamptzString @default(now())
+  createdAt TimestamptzString          @default(now())
   updatedAt temporal.updatedAtString()
 }
 
 model Assessment {
-  id          Int      @id @default(autoincrement())
+  id          Int               @id @default(autoincrement())
   userId      Int
   stressScore Float
   riskLevel   String
 
-  user User @relation(fields: [userId], references: [id])
+  user        User              @relation(fields:[userId], references:[id])
 
   createdAt   TimestamptzString @default(now())
 }
 
 model Notification {
-  id        Int      @id @default(autoincrement())
+  id        Int               @id @default(autoincrement())
   userId    Int
   title     String
   message   String
-  type       String
-  isRead    Boolean  @default(false)
+  type      String
+  isRead    Boolean           @default(false)
 
-  user User @relation(fields: [userId], references: [id])
+  user      User              @relation(fields:[userId], references:[id])
+
+  createdAt TimestamptzString @default(now())
+}
+
+model FollowUp {
+  id          Int               @id @default(autoincrement())
+  userId      Int
+  scheduledAt TimestamptzString
+  status      String            @default("SCHEDULED")
+  notes       String?
+
+  user        User              @relation(fields:[userId], references:[id])
 
   createdAt   TimestamptzString @default(now())
 }
 
-model FollowUp {
-  id           Int      @id @default(autoincrement())
-  userId       Int
-  scheduledAt  TimestamptzString
-  status       String   @default("SCHEDULED")
-  notes        String?
-
-  user User @relation(fields: [userId], references: [id])
-
-  createdAt    TimestamptzString @default(now())
-}
-
 model Recommendation {
-  id          Int      @id @default(autoincrement())
+  id          Int                        @id @default(autoincrement())
   userId      Int
   type        RecommendationType
   title       String
   description String
-  isActive    Boolean  @default(true)
+  isActive    Boolean                    @default(true)
 
-  user User @relation(fields: [userId], references: [id])
+  user        User                       @relation(fields:[userId], references:[id])
 
-  createdAt   TimestamptzString @default(now())
+  createdAt   TimestamptzString          @default(now())
   updatedAt   temporal.updatedAtString()
 }
 
 model WelfareNote {
-  id          Int      @id @default(autoincrement())
+  id          Int               @id @default(autoincrement())
   personnelId Int
   authorId    Int
   text        String
 
-  personnel User @relation("PersonnelWelfareNotes", fields: [personnelId], references: [id])
-  author    User @relation("WelfareNoteAuthors", fields: [authorId], references: [id])
+  personnel   User              @relation("PersonnelWelfareNotes", fields:[personnelId], references:[id])
+  author      User              @relation("WelfareNoteAuthors", fields:[authorId], references:[id])
 
-  createdAt TimestamptzString @default(now())
+  createdAt   TimestamptzString @default(now())
 }
 
 model Report {
-  id             Int      @id @default(autoincrement())
-  commanderId    Int
-  type           String
-  name           String
-  fromDate       TimestamptzString
-  toDate         TimestamptzString
-  downloadUrl    String
-  createdAt      TimestamptzString @default(now())
+  id          Int               @id @default(autoincrement())
+  commanderId Int
+  type        String
+  name        String
+  fromDate    TimestamptzString
+  toDate      TimestamptzString
+  downloadUrl String
+  createdAt   TimestamptzString @default(now())
 
-  commander User @relation(fields: [commanderId], references: [id])
+  commander   User              @relation(fields:[commanderId], references:[id])
 }
 
 model Intervention {
-  id              Int      @id @default(autoincrement())
-  userId          Int
-  type            String
-  status          String   @default("Pending")
+  id                Int                        @id @default(autoincrement())
+  userId            Int
+  type              String
+  status            String                     @default("Pending")
   assignedOfficerId Int
-  targetDate      TimestamptzString
+  targetDate        TimestamptzString
 
-  user            User @relation(fields: [userId], references: [id])
-  assignedOfficer User @relation(fields: [assignedOfficerId], references: [id])
+  user              User                       @relation("PersonnelInterventions", fields:[userId], references:[id])
+  assignedOfficer   User                       @relation("AssignedInterventions", fields:[assignedOfficerId], references:[id])
 
-  createdAt TimestamptzString @default(now())
-  updatedAt temporal.updatedAtString()
+  createdAt         TimestamptzString          @default(now())
+  updatedAt         temporal.updatedAtString()
 }

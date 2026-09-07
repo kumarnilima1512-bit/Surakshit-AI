@@ -12,6 +12,10 @@
       "model": "FollowUp",
       "namespace": "public"
     },
+    "intervention": {
+      "model": "Intervention",
+      "namespace": "public"
+    },
     "notification": {
       "model": "Notification",
       "namespace": "public"
@@ -272,6 +276,128 @@
               },
               "namespaceId": "public",
               "table": "followUp"
+            }
+          },
+          "Intervention": {
+            "fields": {
+              "assignedOfficerId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "createdAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "id": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "status": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "targetDate": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "type": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "updatedAt": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "kind": "scalar"
+                }
+              },
+              "userId": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              }
+            },
+            "relations": {
+              "assignedOfficer": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "assignedOfficerId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              },
+              "user": {
+                "cardinality": "N:1",
+                "on": {
+                  "localFields": [
+                    "userId"
+                  ],
+                  "targetFields": [
+                    "id"
+                  ]
+                },
+                "to": {
+                  "model": "User",
+                  "namespace": "public"
+                }
+              }
+            },
+            "storage": {
+              "fields": {
+                "assignedOfficerId": {
+                  "column": "assignedOfficerId"
+                },
+                "createdAt": {
+                  "column": "createdAt"
+                },
+                "id": {
+                  "column": "id"
+                },
+                "status": {
+                  "column": "status"
+                },
+                "targetDate": {
+                  "column": "targetDate"
+                },
+                "type": {
+                  "column": "type"
+                },
+                "updatedAt": {
+                  "column": "updatedAt"
+                },
+                "userId": {
+                  "column": "userId"
+                }
+              },
+              "namespaceId": "public",
+              "table": "intervention"
             }
           },
           "Notification": {
@@ -979,6 +1105,21 @@
                   "namespace": "public"
                 }
               },
+              "assignedInterventions": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "assignedOfficerId"
+                  ]
+                },
+                "to": {
+                  "model": "Intervention",
+                  "namespace": "public"
+                }
+              },
               "authoredWelfareNotes": {
                 "cardinality": "1:N",
                 "on": {
@@ -1006,6 +1147,21 @@
                 },
                 "to": {
                   "model": "FollowUp",
+                  "namespace": "public"
+                }
+              },
+              "interventions": {
+                "cardinality": "1:N",
+                "on": {
+                  "localFields": [
+                    "id"
+                  ],
+                  "targetFields": [
+                    "userId"
+                  ]
+                },
+                "to": {
+                  "model": "Intervention",
                   "namespace": "public"
                 }
               },
@@ -1388,6 +1544,120 @@
                   ],
                   "name": "followUp_userId_idx_a489d58a",
                   "prefix": "followUp_userId_idx",
+                  "unique": false
+                }
+              ],
+              "primaryKey": {
+                "columns": [
+                  "id"
+                ]
+              },
+              "uniques": []
+            },
+            "intervention": {
+              "columns": {
+                "assignedOfficerId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "createdAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "default": {
+                    "expression": "now()",
+                    "kind": "function"
+                  },
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "id": {
+                  "codecId": "pg/int4@1",
+                  "default": {
+                    "expression": "autoincrement()",
+                    "kind": "function"
+                  },
+                  "nativeType": "int4",
+                  "nullable": false
+                },
+                "status": {
+                  "codecId": "pg/text@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": "Pending"
+                  },
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "targetDate": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "type": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": false
+                },
+                "updatedAt": {
+                  "codecId": "pg/timestamptz-string@1",
+                  "nativeType": "timestamptz",
+                  "nullable": false
+                },
+                "userId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": false
+                }
+              },
+              "foreignKeys": [
+                {
+                  "source": {
+                    "columns": [
+                      "userId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "intervention"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "user"
+                  }
+                },
+                {
+                  "source": {
+                    "columns": [
+                      "assignedOfficerId"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "intervention"
+                  },
+                  "target": {
+                    "columns": [
+                      "id"
+                    ],
+                    "namespaceId": "public",
+                    "tableName": "user"
+                  }
+                }
+              ],
+              "indexes": [
+                {
+                  "columns": [
+                    "assignedOfficerId"
+                  ],
+                  "name": "intervention_assignedOfficerId_idx_00da72e1",
+                  "prefix": "intervention_assignedOfficerId_idx",
+                  "unique": false
+                },
+                {
+                  "columns": [
+                    "userId"
+                  ],
+                  "name": "intervention_userId_idx_a489d58a",
+                  "prefix": "intervention_userId_idx",
                   "unique": false
                 }
               ],
@@ -2155,12 +2425,27 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "785337c18f0a9593c6554e1036661527ed7e2f6833db7f894f64f44489281aca"
+    "storageHash": "af4f71e50d9b6575355077bc128ed12413b24b73c879fe9ed0ba84da6b5bf873"
   },
   "execution": {
-    "executionHash": "5168a06e810857bf1c1b681ade43407db02dade1a5e43b35b4b8d337c8e5e76c",
+    "executionHash": "329fc680727dda9a1f5edcdd28a50f7c729dbe61891b449f84b2cf5a458657e0",
     "mutations": {
       "defaults": [
+        {
+          "onCreate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "onUpdate": {
+            "id": "timestampNow",
+            "kind": "generator"
+          },
+          "ref": {
+            "column": "updatedAt",
+            "namespace": "public",
+            "table": "intervention"
+          }
+        },
         {
           "onCreate": {
             "id": "timestampNow",
