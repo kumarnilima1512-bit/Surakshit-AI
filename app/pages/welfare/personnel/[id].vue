@@ -109,6 +109,11 @@ function trendPath(points: StressPoint[]) {
 function pointXY(points: StressPoint[], i: number) {
   const stepX = chartW / Math.max(points.length - 1, 1)
   const p = points[i]
+
+  if (!p) {
+    return { x: i * stepX, y: chartH }
+  }
+
   return { x: i * stepX, y: chartH - (p.score / chartMax) * chartH }
 }
 

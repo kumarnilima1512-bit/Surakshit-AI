@@ -1,4 +1,3 @@
-```vue
 <script setup lang="ts">
 const role = ref<'personnel' | 'officer' | 'commander' | 'admin'>('personnel')
 const showPassword = ref(false)
@@ -15,11 +14,15 @@ const currentLang = useAppLanguage()
 const { t } = useTranslations(currentLang)
 const forces = [
   { name: 'Army', logo: '/logos/indian-army-logo.png' },
-  { name: 'Navy', logo: '/logos/navy-logo.jpeg' },
+  { name: 'Navy', logo: '/images/indianNavy.png' },
   { name: 'Air Force', logo: '/logos/air_force-logo.png' },
-  { name: 'Coast Guard', logo: '/logos/coast-guard-logo.png' },
+  { name: 'Coast Guard', logo: '/images/coastGuard.png' },
   { name: 'CAPFs', logo: '/logos/capf-logo.png' },
 ]
+// Some source logo files ship with extra internal whitespace, so they read
+// smaller than the others inside the same circle. Give those a smaller
+// padding + slight scale-up so all five badges feel visually consistent.
+const enlargedLogos = new Set(['Air Force', 'Coast Guard'])
 const roles = [
   { key: 'personnel', labelKey: 'role_personnel', icon: 'user' },
   { key: 'officer', labelKey: 'role_officer', icon: 'shield' },
@@ -117,68 +120,74 @@ const handleLogin = async () => {
 </script>
 
 <template>
-  <div class="relative min-h-screen overflow-hidden bg-slate-900">
+  <div class="relative min-h-screen overflow-x-hidden bg-slate-950">
 
-    <!-- Background image -->
+    <!-- Background image (provided by the user) -->
     <div
       class="absolute inset-0 bg-cover bg-center"
-      style="background-image: url('https://images.unsplash.com/photo-1547483238-2cbf881a559f?q=80&w=2000&auto=format&fit=crop')"
+      style="background-image: url('/images/loginbg.png')"
+      aria-hidden="true"
     ></div>
 
-    <div
-      class="absolute inset-0 bg-gradient-to-b from-slate-900/60 via-slate-900/40 to-slate-950/90"
-    ></div>
+    <div class="absolute inset-0 bg-gradient-to-b from-slate-950/70 via-slate-950/55 to-slate-950/95"></div>
 
     <!-- Top bar -->
-    <div class="relative z-50 flex justify-end gap-3 px-6 pt-6">
+    <div class="relative z-50 flex justify-end gap-2 px-4 pt-4 sm:gap-3 sm:px-6 sm:pt-6">
       <LanguageSwitcher />
       <HelpMenu />
     </div>
 
     <div
-      class="relative z-10 mx-auto flex min-h-[calc(100vh-88px)] max-w-7xl flex-col items-center justify-center gap-10 px-6 py-10 lg:flex-row lg:items-center lg:justify-between"
+      class="relative z-10 mx-auto flex min-h-[calc(100vh-72px)] max-w-7xl flex-col items-center justify-center gap-8 px-4 py-8 sm:gap-10 sm:px-6 sm:py-10 lg:min-h-[calc(100vh-88px)] lg:flex-row lg:items-center lg:justify-between"
     >
 
       <!-- LEFT SIDE -->
       <div class="w-full max-w-xl text-white">
 
-        <div class="mb-8 flex flex-wrap gap-8">
+        <div class="mb-6 flex flex-wrap justify-center gap-4 sm:mb-8 sm:justify-start sm:gap-8">
   <div
     v-for="force in forces"
     :key="force.name"
     class="flex flex-col items-center gap-2"
   >
     <div
-      class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/10 backdrop-blur-sm"
+      class="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-white/30 bg-white/10 backdrop-blur-sm sm:h-14 sm:w-14"
     >
       <img
-        :src="force.logo"
-        :alt="`${force.name} logo`"
-        class="h-full w-full object-contain p-1.5"
-      />
+  :src="force.logo"
+  :alt="`${force.name} logo`"
+  class="h-full w-full object-contain"
+  :class="
+    force.name === 'Coast Guard'
+      ? 'scale-90 p-0'
+      : force.name === 'Air Force'
+        ? 'scale-150 p-0.5'
+        : 'p-1.5'
+  "
+/>
     </div>
     
 
-    <span class="text-[11px] font-semibold uppercase tracking-wide">
+    <span class="text-[10px] font-semibold uppercase tracking-wide sm:text-[11px]">
       {{ force.name }}
     </span>
   </div>
 </div>
 
         <h1
-          class="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl lg:text-5xl"
+          class="text-center text-2xl font-extrabold leading-tight tracking-tight sm:text-left sm:text-3xl md:text-4xl lg:text-5xl"
         >
           {{ t('brand_title1') }}
         </h1>
 
         <h2
-          class="mt-1 text-xl font-bold tracking-tight text-amber-300 sm:text-2xl"
+          class="mt-1 text-center text-lg font-bold tracking-tight text-amber-300 sm:text-left sm:text-xl md:text-2xl"
         >
           {{ t('brand_title2') }}
         </h2>
 
-        <div class="my-5 flex items-center gap-3 text-amber-300/80">
-          <span class="h-px w-16 bg-amber-300/40"></span>
+        <div class="my-4 flex items-center justify-center gap-3 text-amber-300/80 sm:my-5 sm:justify-start">
+          <span class="h-px w-12 bg-amber-300/40 sm:w-16"></span>
 
           <svg
             class="h-3 w-3"
@@ -190,18 +199,18 @@ const handleLogin = async () => {
             />
           </svg>
 
-          <span class="h-px w-16 bg-amber-300/40"></span>
+          <span class="h-px w-12 bg-amber-300/40 sm:w-16"></span>
         </div>
 
-        <p class="text-lg font-medium text-slate-200">
+        <p class="text-center text-base font-medium text-slate-200 sm:text-left sm:text-lg">
           {{ t('brand_tagline') }}
         </p>
 
-        <div class="mt-10 grid grid-cols-2 gap-5 sm:grid-cols-4">
+        <div class="mt-8 grid grid-cols-2 gap-4 sm:mt-10 sm:grid-cols-4 sm:gap-5">
 
           <div class="flex flex-col items-center gap-2 text-center">
             <svg
-              class="h-7 w-7 text-slate-200"
+              class="h-6 w-6 text-slate-200 sm:h-7 sm:w-7"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -214,18 +223,18 @@ const handleLogin = async () => {
               />
             </svg>
 
-            <p class="text-xs font-bold uppercase tracking-wide">
+            <p class="text-[11px] font-bold uppercase tracking-wide">
               {{ t('feature_secure_title') }}
             </p>
 
-            <p class="text-[11px] text-slate-300">
+            <p class="text-[10px] text-slate-300 sm:text-[11px]">
               {{ t('feature_secure_desc') }}
             </p>
           </div>
 
           <div class="flex flex-col items-center gap-2 text-center">
             <svg
-              class="h-7 w-7 text-slate-200"
+              class="h-6 w-6 text-slate-200 sm:h-7 sm:w-7"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -238,18 +247,18 @@ const handleLogin = async () => {
               />
             </svg>
 
-            <p class="text-xs font-bold uppercase tracking-wide">
+            <p class="text-[11px] font-bold uppercase tracking-wide">
               {{ t('feature_confidential_title') }}
             </p>
 
-            <p class="text-[11px] text-slate-300">
+            <p class="text-[10px] text-slate-300 sm:text-[11px]">
               {{ t('feature_confidential_desc') }}
             </p>
           </div>
 
           <div class="flex flex-col items-center gap-2 text-center">
             <svg
-              class="h-7 w-7 text-slate-200"
+              class="h-6 w-6 text-slate-200 sm:h-7 sm:w-7"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -262,18 +271,18 @@ const handleLogin = async () => {
               />
             </svg>
 
-            <p class="text-xs font-bold uppercase tracking-wide">
+            <p class="text-[11px] font-bold uppercase tracking-wide">
               {{ t('feature_supportive_title') }}
             </p>
 
-            <p class="text-[11px] text-slate-300">
+            <p class="text-[10px] text-slate-300 sm:text-[11px]">
               {{ t('feature_supportive_desc') }}
             </p>
           </div>
 
           <div class="flex flex-col items-center gap-2 text-center">
             <svg
-              class="h-7 w-7 text-slate-200"
+              class="h-6 w-6 text-slate-200 sm:h-7 sm:w-7"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -286,11 +295,11 @@ const handleLogin = async () => {
               />
             </svg>
 
-            <p class="text-xs font-bold uppercase tracking-wide">
+            <p class="text-[11px] font-bold uppercase tracking-wide">
               {{ t('feature_data_title') }}
             </p>
 
-            <p class="text-[11px] text-slate-300">
+            <p class="text-[10px] text-slate-300 sm:text-[11px]">
               {{ t('feature_data_desc') }}
             </p>
           </div>
@@ -298,7 +307,7 @@ const handleLogin = async () => {
         </div>
 
         <div
-          class="mt-8 flex items-start gap-3 rounded-xl border border-white/10 bg-slate-900/40 p-4 backdrop-blur-sm"
+          class="mt-6 hidden items-start gap-3 rounded-xl border border-white/10 bg-slate-900/40 p-4 backdrop-blur-sm sm:mt-8 sm:flex"
         >
           <svg
             class="mt-0.5 h-5 w-5 shrink-0 text-amber-300"
@@ -322,15 +331,15 @@ const handleLogin = async () => {
       </div>
 
       <!-- RIGHT SIDE LOGIN CARD -->
-      <div class="w-full max-w-md rounded-2xl bg-white p-8 shadow-2xl">
+      <div class="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl sm:p-8">
 
         <div class="flex flex-col items-center">
 
           <div
-            class="flex h-16 w-16 items-center justify-center rounded-full bg-slate-900"
+            class="flex h-14 w-14 items-center justify-center rounded-full bg-slate-900 sm:h-16 sm:w-16"
           >
             <svg
-              class="h-8 w-8 text-white"
+              class="h-7 w-7 text-white sm:h-8 sm:w-8"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -344,7 +353,7 @@ const handleLogin = async () => {
             </svg>
           </div>
 
-          <h2 class="mt-4 text-2xl font-extrabold tracking-tight text-slate-900">
+          <h2 class="mt-4 text-xl font-extrabold tracking-tight text-slate-900 sm:text-2xl">
             {{ t('login_title') }}
           </h2>
 
@@ -353,7 +362,7 @@ const handleLogin = async () => {
           </p>
 
           <div class="mt-4 flex items-center gap-3 text-amber-500">
-            <span class="h-px w-24 bg-slate-200"></span>
+            <span class="h-px w-16 bg-slate-200 sm:w-24"></span>
 
             <svg
               class="h-3 w-3"
@@ -365,7 +374,7 @@ const handleLogin = async () => {
               />
             </svg>
 
-            <span class="h-px w-24 bg-slate-200"></span>
+            <span class="h-px w-16 bg-slate-200 sm:w-24"></span>
           </div>
 
         </div>
@@ -377,7 +386,7 @@ const handleLogin = async () => {
             :key="r.key"
             type="button"
             @click="role = r.key"
-            class="flex flex-col items-center gap-1.5 rounded-xl border px-2 py-3 text-xs font-medium transition-colors"
+            class="flex flex-col items-center gap-1.5 rounded-xl border px-2 py-2.5 text-[11px] font-medium transition-colors sm:py-3 sm:text-xs"
             :class="
               role === r.key
                 ? 'border-slate-900 bg-slate-900 text-white'
@@ -462,7 +471,7 @@ const handleLogin = async () => {
             class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 focus-within:border-slate-400"
           >
             <svg
-              class="h-5 w-5 text-slate-400"
+              class="h-5 w-5 shrink-0 text-slate-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -480,7 +489,7 @@ const handleLogin = async () => {
               type="text"
               autocomplete="username"
               :placeholder="t('placeholder_userid')"
-              class="w-full text-sm text-slate-800 placeholder-slate-400 outline-none"
+              class="w-full min-w-0 text-sm text-slate-800 placeholder-slate-400 outline-none"
             />
           </div>
 
@@ -489,7 +498,7 @@ const handleLogin = async () => {
             class="flex items-center gap-3 rounded-xl border border-slate-200 px-4 py-3 focus-within:border-slate-400"
           >
             <svg
-              class="h-5 w-5 text-slate-400"
+              class="h-5 w-5 shrink-0 text-slate-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -507,12 +516,13 @@ const handleLogin = async () => {
               :type="showPassword ? 'text' : 'password'"
               autocomplete="current-password"
               :placeholder="t('placeholder_password')"
-              class="w-full text-sm text-slate-800 placeholder-slate-400 outline-none"
+              class="w-full min-w-0 text-sm text-slate-800 placeholder-slate-400 outline-none"
               @keyup.enter="handleLogin"
             />
 
             <button
               type="button"
+              class="shrink-0"
               @click="showPassword = !showPassword"
             >
               <svg
@@ -541,7 +551,7 @@ const handleLogin = async () => {
             "
           >
             <svg
-              class="h-5 w-5 text-slate-400"
+              class="h-5 w-5 shrink-0 text-slate-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -561,7 +571,7 @@ const handleLogin = async () => {
               maxlength="6"
               autocomplete="one-time-code"
               placeholder="Enter 6-digit security PIN"
-              class="w-full text-sm text-slate-800 placeholder-slate-400 outline-none"
+              class="w-full min-w-0 text-sm text-slate-800 placeholder-slate-400 outline-none"
               @input="
                 twoFactorCode = twoFactorCode
                   .replace(/\D/g, '')
@@ -571,7 +581,7 @@ const handleLogin = async () => {
             />
 
             <svg
-              class="h-5 w-5 text-slate-400"
+              class="h-5 w-5 shrink-0 text-slate-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -605,7 +615,7 @@ const handleLogin = async () => {
         </p>
 
         <!-- Remember / Forgot -->
-        <div class="mt-4 flex items-center justify-between text-sm">
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-2 text-sm">
 
           <label class="flex items-center gap-2 text-slate-600">
             <input
@@ -705,4 +715,3 @@ const handleLogin = async () => {
     </div>
   </div>
 </template>
-```

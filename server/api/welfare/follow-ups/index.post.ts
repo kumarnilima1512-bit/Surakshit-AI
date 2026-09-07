@@ -1,0 +1,126 @@
+import { db } from '../../../../src/prisma/db'
+import { getAuthUser } from '../../../utils/auth-session'
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) return ''
+
+  return new Date(value).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
+export default defineEventHandler(async (event) => {
+  const authUser = await getAuthUser(event)
+
+  if (authUser.role !== 'OFFICER') {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Welfare officer access required',
+    })
+  }
+
+  const body = await readBody<{
+    personnelId?: string
+    type?: string
+    dueDate?: string
+  }>(event)
+
+  const personnelIdRaw = body.personnelId?.trim()
+  const dueDate = body.dueDate?.trim()
+  const type = body.type?.trim() || 'Welfare Check-in'
+
+  if (!personnelIdRaw || !dueDate) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Personnel ID and due date are required',
+    })
+  }
+
+  const personnelId = Number(personnelIdRaw.replace(/\D/g, ''))
+
+  if (!Number.isInteger(personnelId) || personnelId <= 0) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid personnel ID',
+    })
+  }
+
+  const scheduledAt = new Date(dueDate)
+
+  if (Number.isNaN(scheduledAt.getTime())) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid due date',
+    })
+  }
+
+  const officer = await db.orm.public.User.where({
+    id: authUser.userId,
+  }).first()
+
+  if (!officer) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Welfare officer not found',
+    })
+  }
+
+  const officerAssignments = await db.orm.public.UnitAssignment.where({
+    personnelId: officer.id,
+  }).all()
+
+  const officerUnitIds = officerAssignments.map((assignment) => assignment.unitId)
+
+  const allAssignments = await db.orm.public.UnitAssignment.all()
+
+  const belongsToOfficerUnit = allAssignments.some(
+    (assignment) =>
+      assignment.personnelId === personnelId &&
+      officerUnitIds.includes(assignment.unitId),
+  )
+
+  if (!belongsToOfficerUnit) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Personnel not found in your unit',
+    })
+  }
+
+  const personnel = await db.orm.public.User.where({
+    id: personnelId,
+  }).first()
+
+  if (!personnel || personnel.role !== 'PERSONNEL') {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Personnel not found',
+    })
+  }
+
+  const units = await db.orm.public.Unit.all()
+  const assignment = allAssignments.find(
+    (item) =>
+      item.personnelId === personnel.id &&
+      officerUnitIds.includes(item.unitId),
+  )
+  const unit = units.find((item) => item.id === assignment?.unitId)
+
+  const created = await db.orm.public.FollowUp.create({
+    userId: personnel.id,
+    scheduledAt: scheduledAt.toISOString(),
+    status: 'SCHEDULED',
+    notes: type,
+  })
+
+  return {
+    id: String(created.id),
+    personnelId: String(personnel.id),
+    personnelName: personnel.name ?? '',
+    unit: unit?.name ?? '',
+    type,
+    dueDate: formatDate(created.scheduledAt),
+    status: 'Upcoming' as const,
+  }
+})
