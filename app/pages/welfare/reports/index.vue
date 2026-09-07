@@ -258,7 +258,7 @@ const ICON_SIZE = 16
                     <td class="py-2.5 text-slate-400">{{ r.generatedBy }}</td>
                     <td class="py-2.5 text-slate-500">{{ r.generatedOnLabel }}</td>
                     <td class="py-2.5 text-right">
-                      <a :href="r.downloadUrl" target="_blank" rel="noopener" class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 hover:underline">
+                      <a :href="r.downloadUrl" download class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400 hover:underline">
                         <Download :size="12" /> Download
                       </a>
                     </td>

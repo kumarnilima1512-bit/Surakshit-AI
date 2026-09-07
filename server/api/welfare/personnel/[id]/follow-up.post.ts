@@ -21,15 +21,21 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<{ date?: string }>(event)
+  const date = body?.date?.trim()
 
-  if (!body.date) {
+  if (!date) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Follow-up date is required',
     })
   }
 
-  const scheduledAt = new Date(body.date)
+  /*
+   * <input type="date"> sends YYYY-MM-DD.
+   * Convert it explicitly using India time so the selected
+   * calendar date does not shift because of timezone conversion.
+   */
+  const scheduledAt = new Date(`${date}T00:00:00+05:30`)
 
   if (Number.isNaN(scheduledAt.getTime())) {
     throw createError({
@@ -38,41 +44,24 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const officer = await db.orm.public.User.where({
+  const officer = await db.orm.public.User.first({
     id: authUser.userId,
-  }).first()
+  })
 
-  if (!officer) {
+  if (!officer || officer.role !== 'OFFICER') {
     throw createError({
       statusCode: 404,
       statusMessage: 'Welfare officer not found',
     })
   }
 
-  const officerAssignments = await db.orm.public.UnitAssignment.where({
-    personnelId: officer.id,
-  }).all()
-
-  const officerUnitIds = officerAssignments.map((assignment) => assignment.unitId)
-
-  const allAssignments = await db.orm.public.UnitAssignment.all()
-
-  const belongsToOfficerUnit = allAssignments.some(
-    (assignment) =>
-      assignment.personnelId === id &&
-      officerUnitIds.includes(assignment.unitId),
-  )
-
-  if (!belongsToOfficerUnit) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: 'Personnel not found in your unit',
-    })
-  }
-
-  const personnel = await db.orm.public.User.where({
+  /*
+   * Welfare Officers can schedule follow-ups for any personnel.
+   * No unit restriction is applied.
+   */
+  const personnel = await db.orm.public.User.first({
     id,
-  }).first()
+  })
 
   if (!personnel || personnel.role !== 'PERSONNEL') {
     throw createError({
@@ -81,13 +70,28 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await db.orm.public.FollowUp.create({
+  const followUp = await db.orm.public.FollowUp.create({
     userId: personnel.id,
     scheduledAt: scheduledAt.toISOString(),
     status: 'SCHEDULED',
   })
 
+  await db.orm.public.Notification.create({
+  userId: personnel.id,
+  title: 'Follow-up Scheduled',
+  message: `You have been scheduled for a welfare follow-up on ${date}.`,
+  type: 'followup',
+  isRead: false,
+})
+
   return {
     ok: true,
+    message: 'Follow-up scheduled successfully',
+    followUp: {
+      id: followUp.id,
+      userId: followUp.userId,
+      scheduledAt: followUp.scheduledAt,
+      status: followUp.status,
+    },
   }
 })

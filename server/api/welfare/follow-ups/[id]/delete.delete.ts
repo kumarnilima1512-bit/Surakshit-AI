@@ -42,13 +42,14 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  await db.orm.public.FollowUp.where({
-    id,
-  }).update({
-    status: 'COMPLETED',
-  })
+  await db.orm.public.FollowUp
+    .where({
+      id,
+    })
+    .delete()
 
   return {
     ok: true,
+    message: 'Follow-up deleted successfully',
   }
 })

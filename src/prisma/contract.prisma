@@ -20,36 +20,39 @@ enum RecommendationType {
 }
 
 model User {
-  id                    Int                        @id @default(autoincrement())
-  email                 String                     @unique
-  username              String?
-  name                  String?
-  password              String
-  profilePicture        String?
-  role                  Role                       @default(PERSONNEL)
+  id                      Int                        @id @default(autoincrement())
+  email                   String                     @unique
+  username                String?                    @unique
+  name                    String?
+  password                String
+  profilePicture          String?
+  phone                   String?
+  role                    Role                       @default(PERSONNEL)
 
-  twoFactorEnabled      Boolean                    @default(false)
-  twoFactorPinHash      String?
+  twoFactorEnabled        Boolean                    @default(false)
+  twoFactorPinHash        String?
+
+  notificationPreferences Json?
 
   // Personnel information
-  rank                  String?
-  personnelStatus       PersonnelStatus            @default(ACTIVE)
+  rank                    String?
+  personnelStatus         PersonnelStatus            @default(ACTIVE)
 
-  posts                 Post[]
-  assessments           Assessment[]
-  notifications         Notification[]
-  unitAssignments       UnitAssignment[]
-  followUps             FollowUp[]
-  recommendations       Recommendation[]
-  reports               Report[]
-  interventions         Intervention[]             @relation("PersonnelInterventions")
-  assignedInterventions Intervention[]             @relation("AssignedInterventions")
+  posts                   Post[]
+  assessments             Assessment[]
+  notifications           Notification[]
+  unitAssignments         UnitAssignment[]
+  followUps               FollowUp[]
+  recommendations         Recommendation[]
+  reports                 Report[]
+  interventions           Intervention[]             @relation("PersonnelInterventions")
+  assignedInterventions   Intervention[]             @relation("AssignedInterventions")
 
-  welfareNotes          WelfareNote[]              @relation("PersonnelWelfareNotes")
-  authoredWelfareNotes  WelfareNote[]              @relation("WelfareNoteAuthors")
+  welfareNotes            WelfareNote[]              @relation("PersonnelWelfareNotes")
+  authoredWelfareNotes    WelfareNote[]              @relation("WelfareNoteAuthors")
 
-  createdAt             TimestamptzString          @default(now())
-  updatedAt             temporal.updatedAtString()
+  createdAt               TimestamptzString          @default(now())
+  updatedAt               temporal.updatedAtString()
 }
 
 model Unit {
@@ -87,14 +90,16 @@ model Post {
 }
 
 model Assessment {
-  id          Int               @id @default(autoincrement())
-  userId      Int
-  stressScore Float
-  riskLevel   String
+  id              Int               @id @default(autoincrement())
+  userId          Int
+  stressScore     Float
+  riskLevel       String
+  seenByWelfare   Boolean           @default(false)
+  seenbyCommander Boolean           @default(false)
 
-  user        User              @relation(fields:[userId], references:[id])
+  user            User              @relation(fields:[userId], references:[id])
 
-  createdAt   TimestamptzString @default(now())
+  createdAt       TimestamptzString @default(now())
 }
 
 model Notification {

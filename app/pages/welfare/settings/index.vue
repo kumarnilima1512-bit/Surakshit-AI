@@ -1,53 +1,5 @@
-<!--
-  pages/welfare/settings/index.vue
-  URL: /welfare/settings
-  Reached by tapping the profile icon in the top-right corner, then
-  "Settings" in that dropdown.
-  Nuxt 3 + Composition API + Tailwind, same visual language as the rest
-  of the Welfare Officer section.
-  Install once:
-    npm install lucide-vue-next
--->
-
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
-import {
-  Home,
-  Users,
-  AlertTriangle,
-  ShieldCheck,
-  ClipboardList,
-  BarChart2,
-  FileText,
-  User,
-  LogOut,
-  Menu,
-  Search,
-  Bell as BellIcon,
-  Moon,
-  ChevronDown,
-  KeyRound,
-  Smartphone,
-  Monitor,
-  RotateCw,
-  type LucideIcon,
-} from 'lucide-vue-next'
-
-/* ======================================================================
-   API CONTRACT
-   ----------------------------------------------------------------------
-   GET  /api/welfare/settings                       -> SettingsData
-   POST /api/welfare/settings/change-password         { currentPassword, newPassword } -> { ok: true }
-   POST /api/welfare/settings/2fa                      { enabled: boolean } -> { ok: true }
-   PUT  /api/welfare/settings/notifications            NotificationPrefs -> NotificationPrefs
-   POST /api/welfare/settings/sessions/:id/revoke       -> { ok: true }
-   ====================================================================== */
-
-interface OfficerHeader {
-  name: string
-  role: string
-  avatarUrl: string | null
-}
+import { ref, computed } from 'vue'
 
 interface NotificationPrefs {
   highRiskAlerts: boolean
@@ -56,340 +8,866 @@ interface NotificationPrefs {
   interventionUpdates: boolean
 }
 
-interface Session {
-  id: string
-  device: string
-  location: string
-  lastActiveLabel: string
-  current: boolean
-}
-
 interface SettingsData {
-  officer: OfficerHeader
   twoFactorEnabled: boolean
   notifications: NotificationPrefs
-  activeSessions: Session[]
 }
 
-/* ---------------- Data fetching ---------------- */
-const { data, pending: loading, error, refresh: fetchSettings } =
-  await useFetch<SettingsData>('/api/welfare/settings')
+const {
+  data,
+  pending: loading,
+  error,
+  refresh: fetchSettings,
+} = await useFetch<SettingsData>('/api/welfare/settings')
 
-/* ---------------- Sidebar / header shell (identical to the rest of the section) ---------------- */
-const route = useRoute()
-interface NavItem { label: string; to: string; icon: LucideIcon }
-const navItems: NavItem[] = [
-  { label: 'Dashboard', to: '/welfare/dashboard', icon: Home },
-  { label: 'Personnel', to: '/welfare/personnel', icon: Users },
-  { label: 'High-Risk Cases', to: '/welfare/high-risk-cases', icon: AlertTriangle },
-  { label: 'Interventions', to: '/welfare/interventions', icon: ShieldCheck },
-  { label: 'Follow-ups', to: '/welfare/follow-ups', icon: ClipboardList },
-  { label: 'Analytics', to: '/welfare/analytics', icon: BarChart2 },
-  { label: 'Reports', to: '/welfare/reports', icon: FileText },
-]
-function isActive(to: string) { return route.path === to || route.path.startsWith(`${to}/`) }
-async function logout() { await useFetch('/api/auth/logout', { method: 'POST' }); await navigateTo('/login') }
-const topSearchQuery = ref('')
-function submitTopSearch() {
-  const q = topSearchQuery.value.trim()
-  if (!q) return
-  navigateTo({ path: '/welfare/search', query: { q } })
-}
-const profileOpen = ref(false)
-function toggleProfile() { profileOpen.value = !profileOpen.value }
-async function handleProfileAction(action: 'Profile' | 'Settings' | 'Logout') {
-  profileOpen.value = false
-  if (action === 'Logout') return logout()
-  await navigateTo(`/welfare/${action.toLowerCase()}`)
-}
-function handleOutsideClick(event: MouseEvent) {
-  const target = event.target as HTMLElement
-  if (!target.closest('[data-dropdown-root]')) profileOpen.value = false
-}
-onMounted(() => window.addEventListener('click', handleOutsideClick))
-onUnmounted(() => window.removeEventListener('click', handleOutsideClick))
+/* =========================
+   PASSWORD
+========================= */
 
-/* ---------------- Change password (real action) ---------------- */
-const pwForm = reactive({ current: '', next: '', confirm: '' })
-const changingPassword = ref(false)
-const pwError = ref<string | null>(null)
-const pwSuccess = ref(false)
+const currentPassword = ref('')
+const newPassword = ref('')
+const confirmPassword = ref('')
+
+const passwordLoading = ref(false)
+const passwordError = ref<string | null>(null)
+const passwordSuccess = ref<string | null>(null)
 
 async function changePassword() {
-  pwError.value = null
-  pwSuccess.value = false
-  if (!pwForm.current || !pwForm.next) {
-    pwError.value = 'Please fill in both password fields.'
+  passwordError.value = null
+  passwordSuccess.value = null
+
+  if (!currentPassword.value || !newPassword.value) {
+    passwordError.value =
+      'Current password and new password are required.'
     return
   }
-  if (pwForm.next !== pwForm.confirm) {
-    pwError.value = 'New password and confirmation do not match.'
+
+  if (newPassword.value.length < 8) {
+    passwordError.value =
+      'New password must be at least 8 characters long.'
     return
   }
-  changingPassword.value = true
+
+  if (newPassword.value !== confirmPassword.value) {
+    passwordError.value =
+      'New password and confirmation password do not match.'
+    return
+  }
+
+  passwordLoading.value = true
+
   try {
-    await $fetch('/api/welfare/settings/change-password', {
-      method: 'POST',
-      body: { currentPassword: pwForm.current, newPassword: pwForm.next },
-    })
-    pwForm.current = ''
-    pwForm.next = ''
-    pwForm.confirm = ''
-    pwSuccess.value = true
-  } catch {
-    pwError.value = 'Could not change your password. Please check your current password and try again.'
+    await $fetch(
+      '/api/welfare/settings/change-password' as string,
+      {
+        method: 'POST',
+        body: {
+          currentPassword: currentPassword.value,
+          newPassword: newPassword.value,
+        },
+      },
+    )
+
+    passwordSuccess.value =
+      'Password changed successfully.'
+
+    currentPassword.value = ''
+    newPassword.value = ''
+    confirmPassword.value = ''
+  } catch (err: any) {
+    passwordError.value =
+      err?.data?.statusMessage ||
+      'Could not change password.'
   } finally {
-    changingPassword.value = false
+    passwordLoading.value = false
   }
 }
 
-/* ---------------- 2FA toggle (real action) ---------------- */
+/* =========================
+   2FA
+========================= */
+
 const togglingTwoFactor = ref(false)
+
+const twoFactorPin = ref('')
+const confirmTwoFactorPin = ref('')
+
+const showTwoFactorPin = ref(false)
+const showConfirmTwoFactorPin = ref(false)
+
+const twoFactorError = ref<string | null>(null)
+const twoFactorSuccess = ref<string | null>(null)
+
+const twoFactorPinValid = computed(() => {
+  return /^\d{6}$/.test(twoFactorPin.value)
+})
+
+const confirmTwoFactorPinValid = computed(() => {
+  return /^\d{6}$/.test(confirmTwoFactorPin.value)
+})
+
+const twoFactorPinsMatch = computed(() => {
+  return (
+    twoFactorPin.value.length === 6 &&
+    confirmTwoFactorPin.value.length === 6 &&
+    twoFactorPin.value === confirmTwoFactorPin.value
+  )
+})
+
+function sanitizeTwoFactorPin(value: string) {
+  return value.replace(/\D/g, '').slice(0, 6)
+}
+
 async function toggleTwoFactor() {
   if (!data.value) return
-  togglingTwoFactor.value = true
+
+  twoFactorError.value = null
+  twoFactorSuccess.value = null
+
   const nextState = !data.value.twoFactorEnabled
+
+  /*
+   * ENABLE 2FA
+   */
+  if (nextState) {
+    if (!twoFactorPin.value) {
+      twoFactorError.value =
+        'Please enter a 6-digit security PIN.'
+      return
+    }
+
+    if (!twoFactorPinValid.value) {
+      twoFactorError.value =
+        'Security PIN must contain exactly 6 digits.'
+      return
+    }
+
+    if (!confirmTwoFactorPin.value) {
+      twoFactorError.value =
+        'Please confirm your 6-digit security PIN.'
+      return
+    }
+
+    if (!confirmTwoFactorPinValid.value) {
+      twoFactorError.value =
+        'Confirmation PIN must contain exactly 6 digits.'
+      return
+    }
+
+    if (!twoFactorPinsMatch.value) {
+      twoFactorError.value =
+        'Security PINs do not match.'
+      return
+    }
+  }
+
+  togglingTwoFactor.value = true
+
   try {
-    await $fetch('/api/welfare/settings/2fa', { method: 'POST', body: { enabled: nextState } })
+    await $fetch(
+      '/api/welfare/settings/2fa' as string,
+      {
+        method: 'POST',
+        body: {
+          enabled: nextState,
+          ...(nextState
+            ? {
+                pin: twoFactorPin.value,
+              }
+            : {}),
+        },
+      },
+    )
+
     data.value.twoFactorEnabled = nextState
-  } catch {
-    // Leave state unchanged on failure.
+
+    if (nextState) {
+      twoFactorSuccess.value =
+        'Two-factor authentication enabled successfully.'
+
+      twoFactorPin.value = ''
+      confirmTwoFactorPin.value = ''
+      showTwoFactorPin.value = false
+      showConfirmTwoFactorPin.value = false
+    } else {
+      twoFactorSuccess.value =
+        'Two-factor authentication disabled.'
+
+      twoFactorPin.value = ''
+      confirmTwoFactorPin.value = ''
+      showTwoFactorPin.value = false
+      showConfirmTwoFactorPin.value = false
+    }
+  } catch (err: any) {
+    twoFactorError.value =
+      err?.data?.statusMessage ||
+      'Could not update two-factor authentication.'
   } finally {
     togglingTwoFactor.value = false
   }
 }
 
-/* ---------------- Notification preferences (real action, saved on toggle) ---------------- */
-const savingNotifications = ref(false)
-const notificationSaveError = ref<string | null>(null)
+/* =========================
+   NOTIFICATIONS
+========================= */
 
-const notificationFields: { key: keyof NotificationPrefs; label: string; description: string }[] = [
-  { key: 'highRiskAlerts', label: 'High-Risk Alerts', description: 'Get notified when someone in your unit is flagged Elevated or High risk.' },
-  { key: 'followUpReminders', label: 'Follow-up Reminders', description: 'Reminders for upcoming and overdue welfare check-ins.' },
-  { key: 'interventionUpdates', label: 'Intervention Updates', description: 'Status changes on interventions you\'re assigned to.' },
-  { key: 'weeklySummary', label: 'Weekly Summary', description: 'A digest of unit risk trends every Monday morning.' },
+const savingNotifications = ref(false)
+const notificationSuccess = ref<string | null>(null)
+const notificationError = ref<string | null>(null)
+
+const notificationFields: {
+  key: keyof NotificationPrefs
+  label: string
+  description: string
+}[] = [
+  {
+    key: 'highRiskAlerts',
+    label: 'High-Risk Alerts',
+    description:
+      'Get notified when someone in your unit is flagged Elevated or High risk.',
+  },
+  {
+    key: 'followUpReminders',
+    label: 'Follow-up Reminders',
+    description:
+      'Reminders for upcoming and overdue welfare check-ins.',
+  },
+  {
+    key: 'interventionUpdates',
+    label: 'Intervention Updates',
+    description:
+      "Status changes on interventions you're assigned to.",
+  },
+  {
+    key: 'weeklySummary',
+    label: 'Weekly Summary',
+    description:
+      'A digest of unit risk trends every Monday morning.',
+  },
 ]
 
-async function toggleNotification(key: keyof NotificationPrefs) {
+async function saveNotifications() {
   if (!data.value) return
-  const previous = data.value.notifications[key]
-  data.value.notifications[key] = !previous
+
+  notificationSuccess.value = null
+  notificationError.value = null
   savingNotifications.value = true
-  notificationSaveError.value = null
+
   try {
-    await $fetch('/api/welfare/settings/notifications', { method: 'PUT', body: data.value.notifications })
-  } catch {
-    data.value.notifications[key] = previous
-    notificationSaveError.value = 'Could not save your notification preferences.'
+    await $fetch(
+      '/api/welfare/settings/notifications' as string,
+      {
+        method: 'PUT',
+        body: data.value.notifications,
+      },
+    )
+
+    notificationSuccess.value =
+      'Notification preferences saved successfully.'
+  } catch (err: any) {
+    notificationError.value =
+      err?.data?.statusMessage ||
+      'Could not save notification preferences.'
   } finally {
     savingNotifications.value = false
   }
 }
 
-/* ---------------- Revoke session (real action) ---------------- */
-const revokingId = ref<string | null>(null)
-async function revokeSession(id: string) {
-  if (!data.value) return
-  revokingId.value = id
+/* =========================
+   LOGOUT
+========================= */
+
+async function logout() {
   try {
-    await $fetch(`/api/welfare/settings/sessions/${id}/revoke`, { method: 'POST' })
-    data.value.activeSessions = data.value.activeSessions.filter((s) => s.id !== id)
-  } catch {
-    // Leave the session in place; button re-enables so the officer can retry.
+    await $fetch('/api/auth/logout' as string, {
+      method: 'POST',
+    })
   } finally {
-    revokingId.value = null
+    await navigateTo('/login')
   }
 }
-
-const ICON_SIZE = 16
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-[#0b1220] text-slate-100">
-    <aside class="flex w-64 shrink-0 flex-col border-r border-white/5 bg-[#0d1526]">
-      <div class="flex items-center gap-3 px-5 py-5">
-        <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
-          <img
-  src="/logos/surakshit-ai.png"
-  alt="Surakshit AI"
-  class="h-10 w-10 object-contain"
-/>
-        </div>
-        <div>
-          <p class="text-sm font-bold leading-tight text-white">Surakshit AI</p>
-          <p class="text-[10px] leading-tight text-slate-400">Personnel Stress &amp; Welfare Monitoring</p>
-        </div>
+  <div class="min-h-screen bg-[#07100d] text-slate-200">
+
+    <!-- HEADER -->
+    <div
+      class="border-b border-white/5 bg-[#09130f]/90 px-6 py-5"
+    >
+      <div class="mx-auto max-w-7xl">
+        <h1 class="text-xl font-semibold text-white">
+          System Settings
+        </h1>
+
+        <p class="mt-1 text-xs text-slate-500">
+          Manage your account security, notifications and preferences.
+        </p>
       </div>
-      <nav class="flex-1 space-y-1 px-3">
-        <NuxtLink
-          v-for="item in navItems" :key="item.label" :to="item.to"
-          class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors"
-          :class="isActive(item.to) ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-300 hover:bg-white/5'"
+    </div>
+
+    <main class="mx-auto max-w-7xl space-y-6 px-6 py-6">
+
+      <!-- LOADING -->
+      <div
+        v-if="loading"
+        class="rounded-xl border border-white/5 bg-white/[0.02] p-6 text-sm text-slate-400"
+      >
+        Loading settings...
+      </div>
+
+      <!-- ERROR -->
+      <div
+        v-else-if="error || !data"
+        class="rounded-xl border border-red-500/20 bg-red-500/5 p-6 text-sm text-red-300"
+      >
+        Unable to load system settings.
+      </div>
+
+      <template v-else>
+
+        <!-- =========================
+             SECURITY
+        ========================== -->
+
+        <section
+          class="rounded-xl border border-white/5 bg-white/[0.02] p-6"
         >
-          <component :is="item.icon" :size="ICON_SIZE" :stroke-width="1.5" />
-          {{ item.label }}
-        </NuxtLink>
-      </nav>
-      <div class="border-t border-white/5 px-3 py-3">
-        <button type="button" @click="logout" class="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-xs font-medium text-slate-400 hover:bg-white/5 hover:text-slate-200">
-          <LogOut :size="14" :stroke-width="1.5" />
-          Logout
-        </button>
-      </div>
-    </aside>
+          <div class="mb-5">
+            <h2 class="text-sm font-semibold text-white">
+              Security
+            </h2>
 
-    <div class="flex min-h-screen flex-1 flex-col">
-      <header class="flex items-center gap-4 border-b border-white/5 bg-[#0d1526] px-6 py-3.5">
-        <button type="button" class="rounded-lg p-2 text-slate-400 hover:bg-white/5" aria-label="Toggle menu"><Menu :size="20" /></button>
-        <form class="relative max-w-md flex-1" @submit.prevent="submitTopSearch">
-          <Search :size="16" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-          <input v-model="topSearchQuery" type="text" placeholder="Search personnel, unit, or ID..." class="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-4 text-sm text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50">
-        </form>
-        <div class="ml-auto flex items-center gap-4">
-          <button type="button" class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200" aria-label="Notifications"><BellIcon :size="20" :stroke-width="1.5" /></button>
-          <button type="button" class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200" aria-label="Toggle theme"><Moon :size="20" :stroke-width="1.5" /></button>
+            <p class="mt-1 text-xs text-slate-500">
+              Protect your welfare officer account.
+            </p>
+          </div>
 
-          <!-- Profile icon (top-right corner) — "Settings" in this dropdown leads here -->
-          <div class="relative border-l border-white/10 pl-4" data-dropdown-root>
-            <button type="button" @click.stop="toggleProfile" class="flex items-center gap-2.5">
-              <div class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-700">
-                <img v-if="data?.officer.avatarUrl" :src="data.officer.avatarUrl" class="h-full w-full object-cover" alt="">
-                <User v-else :size="16" :stroke-width="1.5" class="text-slate-300" />
-              </div>
-              <div class="text-left leading-tight">
-                <p class="text-sm font-semibold text-white">{{ data?.officer.name ?? '—' }}</p>
-                <p class="text-[11px] text-slate-400">{{ data?.officer.role ?? '' }}</p>
-              </div>
-              <ChevronDown :size="14" class="text-slate-500 transition-transform" :class="{ 'rotate-180': profileOpen }" />
-            </button>
-            <div v-if="profileOpen" class="absolute right-0 z-20 mt-2 w-44 rounded-xl border border-white/10 bg-[#111a2e] p-1.5 shadow-xl">
-              <button v-for="action in (['Profile', 'Settings', 'Logout'] as const)" :key="action" type="button" @click="handleProfileAction(action)" class="block w-full rounded-lg px-3 py-2 text-left text-xs text-slate-300 hover:bg-white/5 hover:text-white">{{ action }}</button>
+          <!-- CHANGE PASSWORD -->
+
+          <div
+            class="border-b border-white/5 pb-6"
+          >
+            <div class="mb-4">
+              <h3 class="text-xs font-semibold text-slate-200">
+                Change Password
+              </h3>
+
+              <p class="mt-1 text-[11px] text-slate-500">
+                Update your account password regularly for better security.
+              </p>
             </div>
+
+            <div class="grid gap-4 md:grid-cols-3">
+
+              <div>
+                <label class="mb-2 block text-[11px] font-semibold text-slate-400">
+                  Current Password
+                </label>
+
+                <input
+                  v-model="currentPassword"
+                  type="password"
+                  autocomplete="current-password"
+                  placeholder="Current password"
+                  class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
+                />
+              </div>
+
+              <div>
+                <label class="mb-2 block text-[11px] font-semibold text-slate-400">
+                  New Password
+                </label>
+
+                <input
+                  v-model="newPassword"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="Minimum 8 characters"
+                  class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
+                />
+              </div>
+
+              <div>
+                <label class="mb-2 block text-[11px] font-semibold text-slate-400">
+                  Confirm Password
+                </label>
+
+                <input
+                  v-model="confirmPassword"
+                  type="password"
+                  autocomplete="new-password"
+                  placeholder="Confirm new password"
+                  class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
+                />
+              </div>
+
+            </div>
+
+            <p
+              v-if="passwordError"
+              class="mt-3 text-xs text-red-400"
+            >
+              {{ passwordError }}
+            </p>
+
+            <p
+              v-if="passwordSuccess"
+              class="mt-3 text-xs text-emerald-400"
+            >
+              {{ passwordSuccess }}
+            </p>
+
+            <button
+              type="button"
+              :disabled="passwordLoading"
+              class="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              @click="changePassword"
+            >
+              {{
+                passwordLoading
+                  ? 'Updating...'
+                  : 'Update Password'
+              }}
+            </button>
           </div>
-        </div>
-      </header>
 
-      <main class="flex-1 space-y-4 p-6">
-        <div>
-          <h1 class="text-xl font-extrabold tracking-tight text-white">Settings</h1>
-          <p class="mt-0.5 text-xs text-slate-400">Account security and notification preferences</p>
-        </div>
+          <!-- 2FA -->
 
-        <div v-if="loading" class="flex items-center justify-center rounded-2xl border border-white/5 bg-[#0d1526] p-16">
-          <div class="flex flex-col items-center gap-3 text-slate-400">
-            <RotateCw :size="22" class="animate-spin" />
-            <p class="text-sm">Loading settings…</p>
-          </div>
-        </div>
+          <div class="pt-6">
 
-        <div v-else-if="error" class="flex flex-col items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-16 text-center">
-          <AlertTriangle :size="28" class="text-red-400" :stroke-width="1.5" />
-          <p class="text-sm font-semibold text-red-300">Couldn't load settings</p>
-          <p class="text-xs text-slate-400">{{ error.message }} — expected data from <code class="rounded bg-white/5 px-1.5 py-0.5">/api/welfare/settings</code></p>
-          <button type="button" @click="fetchSettings()" class="mt-2 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500">Retry</button>
-        </div>
+            <div
+              class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
+            >
 
-        <template v-else-if="data">
-          <!-- Account security -->
-          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-5">
+              <div class="flex gap-3">
+
+                <div
+                  class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400"
+                >
+                  🔐
+                </div>
+
+                <div>
+                  <h3 class="text-xs font-semibold text-slate-200">
+                    Two-Factor Authentication
+                  </h3>
+
+                  <p class="mt-1 max-w-xl text-[11px] leading-relaxed text-slate-500">
+                    Adds an extra 6-digit security PIN on top of your
+                    password when signing in.
+                  </p>
+                </div>
+
+              </div>
+
+              <button
+                type="button"
+                :disabled="togglingTwoFactor"
+                class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-50"
+                :class="
+                  data.twoFactorEnabled
+                    ? 'bg-emerald-500'
+                    : 'bg-slate-700'
+                "
+                @click="toggleTwoFactor"
+              >
+                <span
+                  class="inline-block h-4 w-4 transform rounded-full bg-white transition"
+                  :class="
+                    data.twoFactorEnabled
+                      ? 'translate-x-6'
+                      : 'translate-x-1'
+                  "
+                />
+              </button>
+
+            </div>
+
+            <!-- ENABLE 2FA PIN FORM -->
+
+            <div
+              v-if="!data.twoFactorEnabled"
+              class="mt-5 rounded-xl border border-white/5 bg-black/10 p-4"
+            >
+
+              <div class="grid gap-4 md:grid-cols-2">
+
+                <!-- PIN -->
+
+                <div>
+                  <label
+                    class="mb-2 block text-[11px] font-semibold text-slate-300"
+                  >
+                    Set 6-digit Security PIN
+                  </label>
+
+                  <div class="relative">
+
+                    <input
+                      :value="twoFactorPin"
+                      :type="
+                        showTwoFactorPin
+                          ? 'text'
+                          : 'password'
+                      "
+                      inputmode="numeric"
+                      maxlength="6"
+                      autocomplete="new-password"
+                      placeholder="Enter 6-digit PIN"
+                      class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 pr-10 text-xs tracking-[0.3em] text-slate-200 outline-none focus:border-emerald-500/50"
+                      @input="
+                        twoFactorPin = sanitizeTwoFactorPin(
+                          ($event.target as HTMLInputElement).value
+                        )
+                      "
+                    />
+
+                    <button
+                      type="button"
+                      class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 transition hover:text-emerald-400"
+                      :aria-label="
+                        showTwoFactorPin
+                          ? 'Hide security PIN'
+                          : 'Show security PIN'
+                      "
+                      @click="
+                        showTwoFactorPin =
+                          !showTwoFactorPin
+                      "
+                    >
+                      <svg
+                        v-if="!showTwoFactorPin"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        class="h-4 w-4"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M2.036 12.322a1.012 1.012 0 010-.644C3.423 7.51 7.36 4.5 12 4.5c4.64 0 8.577 3.01 9.964 7.178.07.21.07.434 0 .644C20.577 16.49 16.64 19.5 12 19.5c-4.64 0-8.577-3.01-9.964-7.178z"
+                        />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+
+                      <svg
+                        v-else
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        class="h-4 w-4"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.443 7.315 19.5 12 19.5c1.524 0 2.971-.325 4.276-.91M6.228 6.228A10.45 10.45 0 0112 4.5c4.685 0 8.774 3.057 10.066 7.5a10.523 10.523 0 01-4.122 5.178M6.228 6.228L3 3m3.228 3.228l3.16 3.16m5.384 5.384L21 21m-6.228-6.228a3 3 0 01-4.243-4.243"
+                        />
+                      </svg>
+                    </button>
+
+                  </div>
+
+                  <p class="mt-2 text-[10px] text-slate-500">
+                    Use exactly 6 digits.
+                  </p>
+                </div>
+
+                <!-- CONFIRM PIN -->
+
+                <div>
+                  <label
+                    class="mb-2 block text-[11px] font-semibold text-slate-300"
+                  >
+                    Confirm Your 2FA PIN
+                  </label>
+
+                  <div class="relative">
+
+                    <input
+                      :value="confirmTwoFactorPin"
+                      :type="
+                        showConfirmTwoFactorPin
+                          ? 'text'
+                          : 'password'
+                      "
+                      inputmode="numeric"
+                      maxlength="6"
+                      autocomplete="new-password"
+                      placeholder="Re-enter 6-digit PIN"
+                      class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 pr-10 text-xs tracking-[0.3em] text-slate-200 outline-none focus:border-emerald-500/50"
+                      @input="
+                        confirmTwoFactorPin =
+                          sanitizeTwoFactorPin(
+                            ($event.target as HTMLInputElement).value
+                          )
+                      "
+                    />
+
+                    <button
+                      type="button"
+                      class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 transition hover:text-emerald-400"
+                      :aria-label="
+                        showConfirmTwoFactorPin
+                          ? 'Hide confirmation PIN'
+                          : 'Show confirmation PIN'
+                      "
+                      @click="
+                        showConfirmTwoFactorPin =
+                          !showConfirmTwoFactorPin
+                      "
+                    >
+                      <svg
+                        v-if="!showConfirmTwoFactorPin"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        class="h-4 w-4"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M2.036 12.322a1.012 1.012 0 010-.644C3.423 7.51 7.36 4.5 12 4.5c4.64 0 8.577 3.01 9.964 7.178.07.21.07.434 0 .644C20.577 16.49 16.64 19.5 12 19.5c-4.64 0-8.577-3.01-9.964-7.178z"
+                        />
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                      </svg>
+
+                      <svg
+                        v-else
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke-width="1.5"
+                        stroke="currentColor"
+                        class="h-4 w-4"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.443 7.315 19.5 12 19.5c1.524 0 2.971-.325 4.276-.91M6.228 6.228A10.45 10.45 0 0112 4.5c4.685 0 8.774 3.057 10.066 7.5a10.523 10.523 0 01-4.122 5.178M6.228 6.228L3 3m3.228 3.228l3.16 3.16m5.384 5.384L21 21m-6.228-6.228a3 3 0 01-4.243-4.243"
+                        />
+                      </svg>
+                    </button>
+
+                  </div>
+
+                  <p
+                    v-if="
+                      confirmTwoFactorPin.length === 6 &&
+                      !twoFactorPinsMatch
+                    "
+                    class="mt-2 text-[10px] text-red-400"
+                  >
+                    PINs do not match.
+                  </p>
+
+                  <p
+                    v-else-if="twoFactorPinsMatch"
+                    class="mt-2 text-[10px] text-emerald-400"
+                  >
+                    PINs match.
+                  </p>
+
+                </div>
+
+              </div>
+
+              <div class="mt-4 flex items-center justify-between gap-4">
+
+                <p class="text-[10px] leading-relaxed text-slate-500">
+                  After enabling 2FA, this PIN will be required
+                  in addition to your password during login.
+                </p>
+
+                <button
+                  type="button"
+                  :disabled="
+                    togglingTwoFactor ||
+                    !twoFactorPinsMatch
+                  "
+                  class="shrink-0 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  @click="toggleTwoFactor"
+                >
+                  {{
+                    togglingTwoFactor
+                      ? 'Enabling...'
+                      : 'Enable 2FA'
+                  }}
+                </button>
+
+              </div>
+
+            </div>
+
+            <!-- ENABLED STATE -->
+
+            <div
+              v-else
+              class="mt-4 rounded-lg border border-emerald-500/10 bg-emerald-500/5 px-4 py-3"
+            >
               <div class="flex items-center gap-2">
-                <KeyRound :size="16" :stroke-width="1.5" class="text-blue-400" />
-                <h3 class="text-sm font-bold text-white">Change Password</h3>
+                <span class="text-emerald-400">✓</span>
+
+                <p class="text-xs font-medium text-emerald-300">
+                  Two-factor authentication is enabled.
+                </p>
               </div>
-              <div class="mt-3 space-y-3">
-                <input v-model="pwForm.current" type="password" placeholder="Current password" class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50">
-                <input v-model="pwForm.next" type="password" placeholder="New password" class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50">
-                <input v-model="pwForm.confirm" type="password" placeholder="Confirm new password" class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50">
+
+              <p class="mt-1 pl-5 text-[10px] text-slate-500">
+                Your 6-digit security PIN will be requested
+                during login.
+              </p>
+            </div>
+
+            <!-- 2FA MESSAGES -->
+
+            <p
+              v-if="twoFactorError"
+              class="mt-3 text-xs text-red-400"
+            >
+              {{ twoFactorError }}
+            </p>
+
+            <p
+              v-if="twoFactorSuccess"
+              class="mt-3 text-xs text-emerald-400"
+            >
+              {{ twoFactorSuccess }}
+            </p>
+
+          </div>
+        </section>
+
+        <!-- =========================
+             NOTIFICATIONS
+        ========================== -->
+
+        <section
+          class="rounded-xl border border-white/5 bg-white/[0.02] p-6"
+        >
+          <div class="mb-5">
+            <h2 class="text-sm font-semibold text-white">
+              Notifications
+            </h2>
+
+            <p class="mt-1 text-xs text-slate-500">
+              Choose which welfare system notifications you receive.
+            </p>
+          </div>
+
+          <div class="space-y-4">
+
+            <div
+              v-for="field in notificationFields"
+              :key="field.key"
+              class="flex items-start justify-between gap-4 rounded-lg border border-white/5 bg-black/10 p-4"
+            >
+              <div>
+                <h3 class="text-xs font-medium text-slate-200">
+                  {{ field.label }}
+                </h3>
+
+                <p class="mt-1 max-w-2xl text-[10px] leading-relaxed text-slate-500">
+                  {{ field.description }}
+                </p>
               </div>
-              <p v-if="pwError" class="mt-2 text-[11px] text-red-400">{{ pwError }}</p>
-              <p v-if="pwSuccess" class="mt-2 text-[11px] text-emerald-400">Password changed successfully.</p>
-              <button type="button" :disabled="changingPassword" @click="changePassword" class="mt-3 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50">
-                {{ changingPassword ? 'Updating…' : 'Update Password' }}
+
+              <button
+                type="button"
+                class="relative mt-1 inline-flex h-5 w-9 shrink-0 items-center rounded-full transition"
+                :class="
+                  data.notifications[field.key]
+                    ? 'bg-emerald-500'
+                    : 'bg-slate-700'
+                "
+                @click="
+                  data.notifications[field.key] =
+                    !data.notifications[field.key]
+                "
+              >
+                <span
+                  class="inline-block h-3.5 w-3.5 transform rounded-full bg-white transition"
+                  :class="
+                    data.notifications[field.key]
+                      ? 'translate-x-4'
+                      : 'translate-x-1'
+                  "
+                />
               </button>
             </div>
 
-            <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-5">
-              <div class="flex items-center gap-2">
-                <Smartphone :size="16" :stroke-width="1.5" class="text-emerald-400" />
-                <h3 class="text-sm font-bold text-white">Two-Factor Authentication</h3>
-              </div>
-              <p class="mt-3 text-xs leading-relaxed text-slate-400">
-                Adds a one-time code from your authenticator app on top of your password when signing in.
-              </p>
-              <div class="mt-4 flex items-center justify-between rounded-xl border border-white/5 p-3.5">
-                <div class="flex items-center gap-2">
-                  <span class="h-2 w-2 rounded-full" :class="data.twoFactorEnabled ? 'bg-emerald-400' : 'bg-slate-500'"></span>
-                  <span class="text-xs font-semibold text-slate-200">{{ data.twoFactorEnabled ? 'Enabled' : 'Disabled' }}</span>
-                </div>
-                <button
-                  type="button" :disabled="togglingTwoFactor" @click="toggleTwoFactor"
-                  class="rounded-lg px-3.5 py-1.5 text-xs font-semibold disabled:opacity-50"
-                  :class="data.twoFactorEnabled ? 'border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20' : 'bg-emerald-600 text-white hover:bg-emerald-500'"
-                >
-                  {{ togglingTwoFactor ? 'Saving…' : (data.twoFactorEnabled ? 'Disable' : 'Enable') }}
-                </button>
-              </div>
-            </div>
           </div>
 
-          <!-- Notification preferences -->
-          <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-5">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <BellIcon :size="16" :stroke-width="1.5" class="text-amber-400" />
-                <h3 class="text-sm font-bold text-white">Notification Preferences</h3>
-              </div>
-              <span v-if="savingNotifications" class="text-[11px] text-slate-500">Saving…</span>
-            </div>
-            <p v-if="notificationSaveError" class="mt-2 text-[11px] text-red-400">{{ notificationSaveError }}</p>
-            <div class="mt-3 divide-y divide-white/5">
-              <div v-for="field in notificationFields" :key="field.key" class="flex items-center justify-between gap-4 py-3">
-                <div>
-                  <p class="text-xs font-semibold text-slate-200">{{ field.label }}</p>
-                  <p class="mt-0.5 text-[11px] text-slate-500">{{ field.description }}</p>
-                </div>
-                <button
-                  type="button" role="switch" :aria-checked="data.notifications[field.key]"
-                  @click="toggleNotification(field.key)"
-                  class="relative h-6 w-11 shrink-0 rounded-full transition-colors"
-                  :class="data.notifications[field.key] ? 'bg-emerald-600' : 'bg-white/10'"
-                >
-                  <span
-                    class="absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform"
-                    :class="data.notifications[field.key] ? 'translate-x-[1.375rem]' : 'translate-x-0.5'"
-                  ></span>
-                </button>
-              </div>
-            </div>
+          <p
+            v-if="notificationError"
+            class="mt-3 text-xs text-red-400"
+          >
+            {{ notificationError }}
+          </p>
+
+          <p
+            v-if="notificationSuccess"
+            class="mt-3 text-xs text-emerald-400"
+          >
+            {{ notificationSuccess }}
+          </p>
+
+          <button
+            type="button"
+            :disabled="savingNotifications"
+            class="mt-5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+            @click="saveNotifications"
+          >
+            {{
+              savingNotifications
+                ? 'Saving...'
+                : 'Save Preferences'
+            }}
+          </button>
+        </section>
+
+        <!-- =========================
+             ACCOUNT
+        ========================== -->
+
+        <section
+          class="rounded-xl border border-white/5 bg-white/[0.02] p-6"
+        >
+          <div class="mb-5">
+            <h2 class="text-sm font-semibold text-white">
+              Account
+            </h2>
+
+            <p class="mt-1 text-xs text-slate-500">
+              Manage your current welfare officer session.
+            </p>
           </div>
 
-          <!-- Active sessions -->
-          <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-5">
-            <div class="flex items-center gap-2">
-              <Monitor :size="16" :stroke-width="1.5" class="text-violet-400" />
-              <h3 class="text-sm font-bold text-white">Active Sessions</h3>
-            </div>
-            <div class="mt-3 space-y-2.5">
-              <div v-if="!data.activeSessions.length" class="text-xs text-slate-500">No other active sessions.</div>
-              <div v-for="s in data.activeSessions" :key="s.id" class="flex items-center justify-between rounded-xl border border-white/5 p-3">
-                <div>
-                  <p class="flex items-center gap-2 text-xs font-semibold text-slate-200">
-                    {{ s.device }}
-                    <span v-if="s.current" class="rounded-md bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-bold text-emerald-400">This device</span>
-                  </p>
-                  <p class="mt-0.5 text-[11px] text-slate-500">{{ s.location }} &middot; {{ s.lastActiveLabel }}</p>
-                </div>
-                <button
-                  v-if="!s.current"
-                  type="button" :disabled="revokingId === s.id" @click="revokeSession(s.id)"
-                  class="rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[11px] font-semibold text-red-300 hover:bg-red-500/20 disabled:opacity-50"
-                >{{ revokingId === s.id ? 'Revoking…' : 'Revoke' }}</button>
-              </div>
-            </div>
-          </div>
-        </template>
-      </main>
-    </div>
+          <button
+            type="button"
+            class="rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/10"
+            @click="logout"
+          >
+            Logout
+          </button>
+        </section>
+
+      </template>
+    </main>
   </div>
 </template>
+

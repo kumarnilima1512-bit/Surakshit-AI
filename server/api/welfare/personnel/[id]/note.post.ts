@@ -21,8 +21,7 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<{ text?: string }>(event)
-
-  const text = body.text?.trim()
+  const text = body?.text?.trim()
 
   if (!text) {
     throw createError({
@@ -31,41 +30,23 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const officer = await db.orm.public.User.where({
+  const officer = await db.orm.public.User.first({
     id: authUser.userId,
-  }).first()
+  })
 
-  if (!officer) {
+  if (!officer || officer.role !== 'OFFICER') {
     throw createError({
       statusCode: 404,
       statusMessage: 'Welfare officer not found',
     })
   }
 
-  const officerAssignments = await db.orm.public.UnitAssignment.where({
-    personnelId: officer.id,
-  }).all()
+  // Welfare Officer can add notes for any personnel.
+  // No unit restriction is applied here.
 
-  const officerUnitIds = officerAssignments.map((assignment) => assignment.unitId)
-
-  const allAssignments = await db.orm.public.UnitAssignment.all()
-
-  const belongsToOfficerUnit = allAssignments.some(
-    (assignment) =>
-      assignment.personnelId === id &&
-      officerUnitIds.includes(assignment.unitId),
-  )
-
-  if (!belongsToOfficerUnit) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: 'Personnel not found in your unit',
-    })
-  }
-
-  const personnel = await db.orm.public.User.where({
+  const personnel = await db.orm.public.User.first({
     id,
-  }).first()
+  })
 
   if (!personnel || personnel.role !== 'PERSONNEL') {
     throw createError({
@@ -82,5 +63,6 @@ export default defineEventHandler(async (event) => {
 
   return {
     ok: true,
+    message: 'Welfare note added successfully',
   }
 })

@@ -14,10 +14,8 @@ const REPORT_TYPES: ReportType[] = [
   'Monthly Welfare Report',
 ]
 
-function formatDate(value: string | null | undefined): string {
-  if (!value) return ''
-
-  return new Date(value).toLocaleDateString('en-GB', {
+function formatDate(value: string): string {
+  return new Date(`${value}T00:00:00`).toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -58,10 +56,13 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const fromDate = new Date(from)
-  const toDate = new Date(to)
+  const fromDate = new Date(`${from}T00:00:00`)
+  const toDate = new Date(`${to}T23:59:59`)
 
-  if (Number.isNaN(fromDate.getTime()) || Number.isNaN(toDate.getTime())) {
+  if (
+    Number.isNaN(fromDate.getTime()) ||
+    Number.isNaN(toDate.getTime())
+  ) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Invalid date range',
@@ -71,23 +72,33 @@ export default defineEventHandler(async (event) => {
   if (fromDate.getTime() > toDate.getTime()) {
     throw createError({
       statusCode: 400,
-      statusMessage: '"From" date must be before "To" date',
+      statusMessage: 'From date must be before To date',
     })
   }
 
-  const fromLabel = formatDate(fromDate.toISOString())
-  const toLabel = formatDate(toDate.toISOString())
+  const fromLabel = formatDate(from)
+  const toLabel = formatDate(to)
 
+  /*
+   * downloadUrl is temporarily empty.
+   * It will be replaced by the actual download API URL
+   * after the report record has been created.
+   */
   const created = await db.orm.public.Report.create({
     commanderId: user.userId,
     name: `${type} (${fromLabel} - ${toLabel})`,
     type,
     fromDate: fromLabel,
     toDate: toLabel,
-    // No document-generation pipeline exists yet, so this points at a
-    // placeholder endpoint. Wire this up to real report generation
-    // once that pipeline exists.
-    downloadUrl: '#',
+    downloadUrl: '',
+  })
+
+  const downloadUrl = `/api/welfare/reports/${created.id}/download`
+
+  await db.orm.public.Report.where({
+    id: created.id,
+  }).update({
+    downloadUrl,
   })
 
   return {
@@ -97,6 +108,6 @@ export default defineEventHandler(async (event) => {
     dateRangeLabel: `${created.fromDate} - ${created.toDate}`,
     generatedBy: user.email,
     generatedOnLabel: created.createdAt,
-    downloadUrl: created.downloadUrl,
+    downloadUrl,
   }
 })

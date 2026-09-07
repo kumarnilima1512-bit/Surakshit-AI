@@ -47,7 +47,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const scheduledAt = new Date(dueDate)
+  const scheduledAt = new Date(`${dueDate}T00:00:00+05:30`)
 
   if (Number.isNaN(scheduledAt.getTime())) {
     throw createError({
@@ -67,27 +67,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const officerAssignments = await db.orm.public.UnitAssignment.where({
-    personnelId: officer.id,
-  }).all()
-
-  const officerUnitIds = officerAssignments.map((assignment) => assignment.unitId)
-
-  const allAssignments = await db.orm.public.UnitAssignment.all()
-
-  const belongsToOfficerUnit = allAssignments.some(
-    (assignment) =>
-      assignment.personnelId === personnelId &&
-      officerUnitIds.includes(assignment.unitId),
-  )
-
-  if (!belongsToOfficerUnit) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: 'Personnel not found in your unit',
-    })
-  }
-
   const personnel = await db.orm.public.User.where({
     id: personnelId,
   }).first()
@@ -99,19 +78,30 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const allAssignments = await db.orm.public.UnitAssignment.all()
   const units = await db.orm.public.Unit.all()
+
   const assignment = allAssignments.find(
-    (item) =>
-      item.personnelId === personnel.id &&
-      officerUnitIds.includes(item.unitId),
+    (item) => item.personnelId === personnel.id,
   )
-  const unit = units.find((item) => item.id === assignment?.unitId)
+
+  const unit = units.find(
+    (item) => item.id === assignment?.unitId,
+  )
 
   const created = await db.orm.public.FollowUp.create({
     userId: personnel.id,
     scheduledAt: scheduledAt.toISOString(),
     status: 'SCHEDULED',
     notes: type,
+  })
+
+  await db.orm.public.Notification.create({
+    userId: personnel.id,
+    title: 'Follow-up Scheduled',
+    message: `You have been scheduled for a welfare follow-up on ${dueDate}.`,
+    type: 'followup',
+    isRead: false,
   })
 
   return {

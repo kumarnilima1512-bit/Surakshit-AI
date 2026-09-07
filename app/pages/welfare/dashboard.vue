@@ -712,15 +712,15 @@ const ICON_SIZE = 16
                   <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/25 text-emerald-300"><Users :size="15" :stroke-width="1.5" /></span>
                   <span class="text-xs font-semibold text-slate-100">View High-Risk Cases</span>
                 </NuxtLink>
-                <NuxtLink to="/welfare/follow-ups/new" class="flex items-center gap-3 rounded-xl bg-blue-600/15 p-3 text-left hover:bg-blue-600/25">
+                <NuxtLink to="/welfare/follow-ups" class="flex items-center gap-3 rounded-xl bg-blue-600/15 p-3 text-left hover:bg-blue-600/25">
                   <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-500/25 text-blue-300"><ClipboardList :size="15" :stroke-width="1.5" /></span>
                   <span class="text-xs font-semibold text-slate-100">Schedule Follow-up</span>
                 </NuxtLink>
-                <NuxtLink to="/welfare/notes/new" class="flex items-center gap-3 rounded-xl bg-violet-600/15 p-3 text-left hover:bg-violet-600/25">
+                <NuxtLink to="/welfare/notes" class="flex items-center gap-3 rounded-xl bg-violet-600/15 p-3 text-left hover:bg-violet-600/25">
                   <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/25 text-violet-300"><FileText :size="15" :stroke-width="1.5" /></span>
                   <span class="text-xs font-semibold text-slate-100">Add Welfare Note</span>
                 </NuxtLink>
-                <NuxtLink to="/welfare/reports/new" class="flex items-center gap-3 rounded-xl bg-slate-600/15 p-3 text-left hover:bg-slate-600/25">
+                <NuxtLink to="/welfare/reports" class="flex items-center gap-3 rounded-xl bg-slate-600/15 p-3 text-left hover:bg-slate-600/25">
                   <span class="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-500/25 text-slate-300"><BarChart2 :size="15" :stroke-width="1.5" /></span>
                   <span class="text-xs font-semibold text-slate-100">Generate Unit Report</span>
                 </NuxtLink>

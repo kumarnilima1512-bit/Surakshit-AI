@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'dbdfd3e9d0fe710df240d1ec399c3ee548dce0a3d36caed88982f82d2b2a9c5b'>;
+  StorageHashBase<'658e60e470eb8eb71b249b97ead158511f4d85d4e380f9ce7e329df2c2fa69c5'>;
 export type ExecutionHash =
   ExecutionHashBase<'329fc680727dda9a1f5edcdd28a50f7c729dbe61891b449f84b2cf5a458657e0'>;
 export type ProfileHash =
@@ -327,11 +327,9 @@ export type FieldOutputTypes = {
       readonly name: CodecTypes['pg/text@1']['output'] | null;
       readonly password: CodecTypes['pg/text@1']['output'];
       readonly profilePicture: CodecTypes['pg/text@1']['output'] | null;
-      readonly phone: CodecTypes['pg/text@1']['output'] | null;
       readonly role: 'ADMIN' | 'COMMANDER' | 'OFFICER' | 'PERSONNEL';
       readonly twoFactorEnabled: CodecTypes['pg/bool@1']['output'];
       readonly twoFactorPinHash: CodecTypes['pg/text@1']['output'] | null;
-      readonly notificationPreferences: CodecTypes['pg/json@1']['output'] | null;
       readonly rank: CodecTypes['pg/text@1']['output'] | null;
       readonly personnelStatus: 'ACTIVE' | 'ON_LEAVE' | 'INACTIVE';
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
@@ -434,11 +432,9 @@ export type FieldInputTypes = {
       readonly name: CodecTypes['pg/text@1']['input'] | null;
       readonly password: CodecTypes['pg/text@1']['input'];
       readonly profilePicture: CodecTypes['pg/text@1']['input'] | null;
-      readonly phone: CodecTypes['pg/text@1']['input'] | null;
       readonly role: 'ADMIN' | 'COMMANDER' | 'OFFICER' | 'PERSONNEL';
       readonly twoFactorEnabled: CodecTypes['pg/bool@1']['input'];
       readonly twoFactorPinHash: CodecTypes['pg/text@1']['input'] | null;
-      readonly notificationPreferences: CodecTypes['pg/json@1']['input'] | null;
       readonly rank: CodecTypes['pg/text@1']['input'] | null;
       readonly personnelStatus: 'ACTIVE' | 'ON_LEAVE' | 'INACTIVE';
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
@@ -539,10 +535,8 @@ export type StorageColumnTypes = {
       readonly email: CodecTypes['pg/text@1']['output'];
       readonly id: CodecTypes['pg/int4@1']['output'];
       readonly name: CodecTypes['pg/text@1']['output'] | null;
-      readonly notificationPreferences: CodecTypes['pg/json@1']['output'] | null;
       readonly password: CodecTypes['pg/text@1']['output'];
       readonly personnelStatus: 'ACTIVE' | 'ON_LEAVE' | 'INACTIVE';
-      readonly phone: CodecTypes['pg/text@1']['output'] | null;
       readonly profilePicture: CodecTypes['pg/text@1']['output'] | null;
       readonly rank: CodecTypes['pg/text@1']['output'] | null;
       readonly role: 'ADMIN' | 'COMMANDER' | 'OFFICER' | 'PERSONNEL';
@@ -646,10 +640,8 @@ export type StorageColumnInputTypes = {
       readonly email: CodecTypes['pg/text@1']['input'];
       readonly id: CodecTypes['pg/int4@1']['input'];
       readonly name: CodecTypes['pg/text@1']['input'] | null;
-      readonly notificationPreferences: CodecTypes['pg/json@1']['input'] | null;
       readonly password: CodecTypes['pg/text@1']['input'];
       readonly personnelStatus: 'ACTIVE' | 'ON_LEAVE' | 'INACTIVE';
-      readonly phone: CodecTypes['pg/text@1']['input'] | null;
       readonly profilePicture: CodecTypes['pg/text@1']['input'] | null;
       readonly rank: CodecTypes['pg/text@1']['input'] | null;
       readonly role: 'ADMIN' | 'COMMANDER' | 'OFFICER' | 'PERSONNEL';
@@ -1363,11 +1355,6 @@ type ContractBase = Omit<
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
                 };
-                readonly phone: {
-                  readonly nativeType: 'text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
                 readonly role: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
@@ -1389,11 +1376,6 @@ type ContractBase = Omit<
                 readonly twoFactorPinHash: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
-                  readonly nullable: true;
-                };
-                readonly notificationPreferences: {
-                  readonly nativeType: 'json';
-                  readonly codecId: 'pg/json@1';
                   readonly nullable: true;
                 };
                 readonly rank: {
@@ -1423,10 +1405,7 @@ type ContractBase = Omit<
                 };
               };
               primaryKey: { readonly columns: readonly ['id'] };
-              uniques: readonly [
-                { readonly columns: readonly ['email'] },
-                { readonly columns: readonly ['username'] },
-              ];
+              uniques: readonly [{ readonly columns: readonly ['email'] }];
               indexes: readonly [];
               foreignKeys: readonly [];
             };
@@ -2146,10 +2125,6 @@ type ContractBase = Omit<
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
-              readonly phone: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
               readonly role: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -2161,10 +2136,6 @@ type ContractBase = Omit<
               readonly twoFactorPinHash: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly notificationPreferences: {
-                readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/json@1' };
               };
               readonly rank: {
                 readonly nullable: true;
@@ -2319,11 +2290,9 @@ type ContractBase = Omit<
                 readonly name: { readonly column: 'name' };
                 readonly password: { readonly column: 'password' };
                 readonly profilePicture: { readonly column: 'profilePicture' };
-                readonly phone: { readonly column: 'phone' };
                 readonly role: { readonly column: 'role' };
                 readonly twoFactorEnabled: { readonly column: 'twoFactorEnabled' };
                 readonly twoFactorPinHash: { readonly column: 'twoFactorPinHash' };
-                readonly notificationPreferences: { readonly column: 'notificationPreferences' };
                 readonly rank: { readonly column: 'rank' };
                 readonly personnelStatus: { readonly column: 'personnelStatus' };
                 readonly createdAt: { readonly column: 'createdAt' };

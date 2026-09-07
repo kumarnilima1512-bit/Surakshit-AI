@@ -137,6 +137,20 @@
                   "kind": "scalar"
                 }
               },
+              "seenByWelfare": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
+              "seenbyCommander": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/bool@1",
+                  "kind": "scalar"
+                }
+              },
               "stressScore": {
                 "nullable": false,
                 "type": {
@@ -179,6 +193,12 @@
                 },
                 "riskLevel": {
                   "column": "riskLevel"
+                },
+                "seenByWelfare": {
+                  "column": "seenByWelfare"
+                },
+                "seenbyCommander": {
+                  "column": "seenbyCommander"
                 },
                 "stressScore": {
                   "column": "stressScore"
@@ -1013,6 +1033,13 @@
                   "kind": "scalar"
                 }
               },
+              "notificationPreferences": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/json@1",
+                  "kind": "scalar"
+                }
+              },
               "password": {
                 "nullable": false,
                 "type": {
@@ -1031,6 +1058,13 @@
                   "entityName": "PersonnelStatus",
                   "namespaceId": "public",
                   "plane": "domain"
+                }
+              },
+              "phone": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
                 }
               },
               "profilePicture": {
@@ -1270,11 +1304,17 @@
                 "name": {
                   "column": "name"
                 },
+                "notificationPreferences": {
+                  "column": "notificationPreferences"
+                },
                 "password": {
                   "column": "password"
                 },
                 "personnelStatus": {
                   "column": "personnelStatus"
+                },
+                "phone": {
+                  "column": "phone"
                 },
                 "profilePicture": {
                   "column": "profilePicture"
@@ -1426,6 +1466,24 @@
                 "riskLevel": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
+                  "nullable": false
+                },
+                "seenByWelfare": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
+                  "nullable": false
+                },
+                "seenbyCommander": {
+                  "codecId": "pg/bool@1",
+                  "default": {
+                    "kind": "literal",
+                    "value": false
+                  },
+                  "nativeType": "bool",
                   "nullable": false
                 },
                 "stressScore": {
@@ -2211,6 +2269,11 @@
                   "nativeType": "text",
                   "nullable": true
                 },
+                "notificationPreferences": {
+                  "codecId": "pg/json@1",
+                  "nativeType": "json",
+                  "nullable": true
+                },
                 "password": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
@@ -2230,6 +2293,11 @@
                     "namespaceId": "public",
                     "plane": "storage"
                   }
+                },
+                "phone": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
                 },
                 "profilePicture": {
                   "codecId": "pg/text@1",
@@ -2292,6 +2360,11 @@
                 {
                   "columns": [
                     "email"
+                  ]
+                },
+                {
+                  "columns": [
+                    "username"
                   ]
                 }
               ]
@@ -2425,7 +2498,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "af4f71e50d9b6575355077bc128ed12413b24b73c879fe9ed0ba84da6b5bf873"
+    "storageHash": "dbdfd3e9d0fe710df240d1ec399c3ee548dce0a3d36caed88982f82d2b2a9c5b"
   },
   "execution": {
     "executionHash": "329fc680727dda9a1f5edcdd28a50f7c729dbe61891b449f84b2cf5a458657e0",
