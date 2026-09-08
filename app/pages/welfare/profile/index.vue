@@ -1,4 +1,3 @@
-
 <!--
   pages/welfare/profile/index.vue
   URL: /welfare/profile
