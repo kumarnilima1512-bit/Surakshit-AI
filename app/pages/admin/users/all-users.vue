@@ -25,6 +25,7 @@ const search = ref('')
 const roleFilter = ref('ALL')
 const error = ref('')
 const openMenu = ref<number | null>(null)
+const deletingUserId = ref<number | null>(null)
 
 const filteredUsers = computed(() => {
   const query = search.value.toLowerCase().trim()
@@ -37,7 +38,8 @@ const filteredUsers = computed(() => {
       user.username?.toLowerCase().includes(query)
 
     const matchesRole =
-      roleFilter.value === 'ALL' || user.role === roleFilter.value
+      roleFilter.value === 'ALL' ||
+      user.role === roleFilter.value
 
     return matchesSearch && matchesRole
   })
@@ -47,10 +49,13 @@ const roleClass = (role: string) => {
   switch (role) {
     case 'ADMIN':
       return 'bg-red-500/10 text-red-400 border-red-500/20'
+
     case 'COMMANDER':
       return 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+
     case 'OFFICER':
       return 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+
     default:
       return 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
   }
@@ -65,11 +70,12 @@ const loadUsers = async () => {
     const response = await $fetch<{
       success: boolean
       users: UserData[]
-    }>('/api/admin/user')
+    }>('/api/admin/users')
 
     users.value = response.users
   } catch (err) {
-    console.error(err)
+    console.error('Failed to load users:', err)
+
     error.value = 'Unable to load users'
   } finally {
     loading.value = false
@@ -81,7 +87,10 @@ const goToCreateUser = () => {
 }
 
 const toggleMenu = (userId: number) => {
-  openMenu.value = openMenu.value === userId ? null : userId
+  openMenu.value =
+    openMenu.value === userId
+      ? null
+      : userId
 }
 
 const editUser = (user: UserData) => {
@@ -92,16 +101,47 @@ const editUser = (user: UserData) => {
   })
 }
 
-const deleteUser = (user: UserData) => {
+const deleteUser = async (user: UserData) => {
   openMenu.value = null
+  error.value = ''
 
-  console.log('Delete user:', user.id)
+  const displayName =
+    user.name ||
+    user.username ||
+    user.email
 
-  // DELETE API will be connected here later.
+  const confirmed = window.confirm(
+    `Are you sure you want to delete "${displayName}"?\n\nThis action cannot be undone.`,
+  )
+
+  if (!confirmed) {
+    return
+  }
+
+  deletingUserId.value = user.id
+
+  try {
+    await $fetch(`/api/admin/users/${user.id}`, {
+      method: 'DELETE',
+    })
+
+    users.value = users.value.filter(
+      (item) => item.id !== user.id,
+    )
+  } catch (err) {
+    console.error('Delete user failed:', err)
+
+    error.value =
+      'Unable to delete user. The user may have related records that prevent deletion.'
+  } finally {
+    deletingUserId.value = null
+  }
 }
 
 const closeMenu = () => {
-  openMenu.value = null
+  if (deletingUserId.value === null) {
+    openMenu.value = null
+  }
 }
 
 onMounted(loadUsers)
@@ -269,10 +309,14 @@ onMounted(loadUsers)
 
           <button
             @click.stop="loadUsers"
-            class="rounded-lg border border-white/10 bg-[#07111f] px-3 text-slate-400 transition hover:text-white"
+            :disabled="loading"
+            class="rounded-lg border border-white/10 bg-[#07111f] px-3 text-slate-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
             title="Refresh"
           >
-            <RefreshCw :size="18" />
+            <RefreshCw
+              :size="18"
+              :class="loading ? 'animate-spin' : ''"
+            />
           </button>
         </div>
       </div>
@@ -366,10 +410,12 @@ onMounted(loadUsers)
                       class="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-500/10 text-sm font-semibold text-emerald-400"
                     >
                       {{
-                        (user.name ||
+                        (
+                          user.name ||
                           user.username ||
                           user.email ||
-                          '?')
+                          '?'
+                        )
                           .charAt(0)
                           .toUpperCase()
                       }}
@@ -419,7 +465,8 @@ onMounted(loadUsers)
                   <div class="relative">
                     <button
                       @click.stop="toggleMenu(user.id)"
-                      class="rounded-lg p-2 text-slate-500 transition hover:bg-white/5 hover:text-white"
+                      :disabled="deletingUserId === user.id"
+                      class="rounded-lg p-2 text-slate-500 transition hover:bg-white/5 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
                       title="Actions"
                     >
                       <MoreVertical :size="18" />
@@ -440,10 +487,25 @@ onMounted(loadUsers)
 
                       <button
                         @click.stop="deleteUser(user)"
-                        class="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-red-400 transition hover:bg-red-500/10"
+                        :disabled="deletingUserId === user.id"
+                        class="flex w-full items-center gap-2 px-4 py-3 text-left text-sm text-red-400 transition hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        <Trash2 :size="15" />
-                        Delete
+                        <RefreshCw
+                          v-if="deletingUserId === user.id"
+                          :size="15"
+                          class="animate-spin"
+                        />
+
+                        <Trash2
+                          v-else
+                          :size="15"
+                        />
+
+                        {{
+                          deletingUserId === user.id
+                            ? 'Deleting...'
+                            : 'Delete'
+                        }}
                       </button>
                     </div>
                   </div>
