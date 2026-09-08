@@ -11,58 +11,69 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const id = Number(getRouterParam(event, 'id'))
+  const assessmentId = Number(
+    getRouterParam(event, 'id'),
+  )
 
-  if (!Number.isInteger(id) || id <= 0) {
+  if (!Number.isInteger(assessmentId)) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Invalid alert ID',
+      statusMessage: 'Invalid assessment ID',
     })
   }
 
-  const notification = await db.orm.public.Notification.where({
-    id,
-  }).first()
+  const assessment =
+    await db.orm.public.Assessment.first({
+      id: assessmentId,
+    })
 
-  if (!notification) {
+  if (!assessment) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Alert not found',
+      statusMessage: 'Assessment not found',
     })
   }
 
-  const assignments = await db.orm.public.UnitAssignment.where({
-    personnelId: authUser.userId,
-  }).all()
+  const commanderAssignments =
+    await db.orm.public.UnitAssignment.where({
+      personnelId: authUser.userId,
+    }).all()
 
-  const commanderUnitIds = assignments.map(
-    (assignment) => assignment.unitId,
-  )
+  const commanderUnitIds =
+    commanderAssignments.map(
+      (assignment) => assignment.unitId,
+    )
 
   const personnelAssignments =
     await db.orm.public.UnitAssignment.where({
-      personnelId: notification.userId,
+      personnelId: assessment.userId,
     }).all()
 
-  const belongsToCommanderUnit = personnelAssignments.some(
-    (assignment) => commanderUnitIds.includes(assignment.unitId),
-  )
+  const belongsToCommanderUnit =
+    personnelAssignments.some(
+      (assignment) =>
+        commanderUnitIds.includes(
+          assignment.unitId,
+        ),
+    )
 
   if (!belongsToCommanderUnit) {
     throw createError({
-      statusCode: 404,
-      statusMessage: 'Alert not found in your unit',
+      statusCode: 403,
+      statusMessage:
+        'You cannot acknowledge this alert',
     })
   }
 
-  await db.orm.public.Notification
-    .where({ id })
-    .update({
-      isRead: true,
-    })
+  const updatedAssessment =
+    await db.orm.public.Assessment
+      .where({ id: assessmentId })
+      .update({
+        seenbyCommander: true,
+      })
 
   return {
-    ok: true,
+    success: true,
+    acknowledged: updatedAssessment?.seenbyCommander ?? true,
   }
 })
-

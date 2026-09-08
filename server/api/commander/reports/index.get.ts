@@ -11,13 +11,25 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  const commander = await db.orm.public.User.first({
+    id: user.userId,
+  })
+
+  if (!commander) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Commander not found',
+    })
+  }
+
   const reports = await db.orm.public.Report.where({
     commanderId: user.userId,
   }).all()
 
   const sortedReports = [...reports].sort(
     (a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      new Date(b.createdAt).getTime() -
+      new Date(a.createdAt).getTime(),
   )
 
   const reportRecords = sortedReports.map((report) => ({
@@ -25,16 +37,16 @@ export default defineEventHandler(async (event) => {
     name: report.name,
     type: report.type,
     dateRangeLabel: `${report.fromDate} - ${report.toDate}`,
-    generatedBy: user.email,
+    generatedBy: commander.name ?? commander.email,
     generatedOnLabel: report.createdAt,
     downloadUrl: report.downloadUrl,
   }))
 
   return {
     commander: {
-      name: user.email,
-      rank: 'Commander',
-      avatarUrl: null,
+      name: commander.name ?? commander.email,
+      rank: commander.rank ?? 'Commander',
+      avatarUrl: commander.profilePicture ?? null,
     },
     reports: reportRecords,
   }

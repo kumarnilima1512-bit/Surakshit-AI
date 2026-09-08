@@ -1,34 +1,21 @@
 import { db } from '../../../../src/prisma/db'
 import { getAuthUser } from '../../../utils/auth-session'
 
-const allowedReportTypes = [
+type ReportType =
+  | 'Unit Risk Summary'
+  | 'Personnel Readiness Report'
+  | 'Risk Alert Log'
+  | 'Monthly Command Report'
+
+const REPORT_TYPES: ReportType[] = [
   'Unit Risk Summary',
   'Personnel Readiness Report',
   'Risk Alert Log',
   'Monthly Command Report',
-] as const
-
-type ReportType = (typeof allowedReportTypes)[number]
-
-function isReportType(value: unknown): value is ReportType {
-  return (
-    typeof value === 'string' &&
-    allowedReportTypes.includes(value as ReportType)
-  )
-}
-
-function isValidDate(value: unknown): value is string {
-  if (typeof value !== 'string' || !value) {
-    return false
-  }
-
-  const date = new Date(value)
-
-  return !Number.isNaN(date.getTime())
-}
+]
 
 function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString('en-GB', {
+  return new Date(`${value}T00:00:00`).toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -36,18 +23,18 @@ function formatDate(value: string): string {
 }
 
 export default defineEventHandler(async (event) => {
-  const authUser = await getAuthUser(event)
+  const user = await getAuthUser(event)
 
-  if (authUser.role !== 'COMMANDER') {
+  if (user.role !== 'COMMANDER') {
     throw createError({
       statusCode: 403,
       statusMessage: 'Commander access required',
     })
   }
 
-  const commander = await db.orm.public.User.where({
-    id: authUser.userId,
-  }).first()
+  const commander = await db.orm.public.User.first({
+    id: user.userId,
+  })
 
   if (!commander) {
     throw createError({
@@ -57,61 +44,79 @@ export default defineEventHandler(async (event) => {
   }
 
   const body = await readBody<{
-    type?: unknown
-    from?: unknown
-    to?: unknown
+    type?: ReportType
+    from?: string
+    to?: string
   }>(event)
 
-  if (!isReportType(body?.type)) {
+  const type = body.type
+  const from = body.from?.trim()
+  const to = body.to?.trim()
+
+  if (!type || !from || !to) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Report type, from date, and to date are required',
+    })
+  }
+
+  if (!REPORT_TYPES.includes(type)) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Invalid report type',
     })
   }
 
-  if (!isValidDate(body?.from) || !isValidDate(body?.to)) {
+  const fromDate = new Date(`${from}T00:00:00`)
+  const toDate = new Date(`${to}T23:59:59`)
+
+  if (
+    Number.isNaN(fromDate.getTime()) ||
+    Number.isNaN(toDate.getTime())
+  ) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'Valid from and to dates are required',
+      statusMessage: 'Invalid date range',
     })
   }
-
-  const fromDate = new Date(body.from)
-  const toDate = new Date(body.to)
 
   if (fromDate.getTime() > toDate.getTime()) {
     throw createError({
       statusCode: 400,
-      statusMessage: 'From date cannot be after to date',
+      statusMessage: 'From date must be before To date',
     })
   }
 
-  const report = await db.orm.public.Report.create({
+  const fromLabel = formatDate(from)
+  const toLabel = formatDate(to)
+
+  const created = await db.orm.public.Report.create({
     commanderId: commander.id,
-    type: body.type,
-    name: `${body.type} - ${body.from} to ${body.to}`,
-    fromDate: body.from,
-    toDate: body.to,
+    name: `${type} (${fromLabel} - ${toLabel})`,
+    type,
+    fromDate: fromLabel,
+    toDate: toLabel,
     downloadUrl: '',
   })
 
-  const downloadUrl = `/api/commander/reports/${report.id}/download`
+  const downloadUrl =
+    `/api/commander/reports/${created.id}/download`
 
   await db.orm.public.Report
     .where({
-      id: report.id,
+      id: created.id,
     })
     .update({
       downloadUrl,
     })
 
   return {
-    id: String(report.id),
-    name: report.name,
-    type: report.type,
-    dateRangeLabel: `${formatDate(body.from)} – ${formatDate(body.to)}`,
-    generatedBy: commander.name ?? '',
-    generatedOnLabel: formatDate(report.createdAt),
+    id: String(created.id),
+    name: created.name,
+    type: created.type,
+    dateRangeLabel: `${created.fromDate} - ${created.toDate}`,
+    generatedBy: commander.name ?? commander.email,
+    generatedOnLabel: created.createdAt,
     downloadUrl,
   }
 })

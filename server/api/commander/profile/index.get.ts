@@ -24,13 +24,13 @@ export default defineEventHandler(async (event) => {
 
   return {
     name: commander.name ?? '',
-    rank: 'Commander',
+    rank: commander.rank ?? 'Commander',
     serviceId: String(commander.id),
     unitName: 'Unit Not Assigned',
     unitCode: 'N/A',
     email: commander.email,
-    phone: '',
+    phone: commander.phone ?? '',
     joinedDate: commander.createdAt,
-    avatarUrl: null,
+    avatarUrl: commander.profilePicture ?? null,
   }
 })

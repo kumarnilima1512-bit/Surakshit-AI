@@ -1,6 +1,16 @@
 import { db } from '../../../../src/prisma/db'
 import { getAuthUser } from '../../../utils/auth-session'
 
+function formatDate(value: string | null | undefined): string {
+  if (!value) return ''
+
+  return new Date(value).toLocaleDateString('en-GB', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+  })
+}
+
 export default defineEventHandler(async (event) => {
   const authUser = await getAuthUser(event)
 
@@ -17,9 +27,20 @@ export default defineEventHandler(async (event) => {
     dueDate?: string
   }>(event)
 
-  const personnelId = Number(body.personnelId)
-  const type = body.type?.trim()
+  const personnelIdRaw = body.personnelId?.trim()
   const dueDate = body.dueDate?.trim()
+  const type = body.type?.trim() || 'Welfare Check-in'
+
+  if (!personnelIdRaw || !dueDate) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Personnel ID and due date are required',
+    })
+  }
+
+  const personnelId = Number(
+    personnelIdRaw.replace(/\D/g, ''),
+  )
 
   if (!Number.isInteger(personnelId) || personnelId <= 0) {
     throw createError({
@@ -28,21 +49,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  if (!type) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Follow-up type is required',
-    })
-  }
-
-  if (!dueDate) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Due date is required',
-    })
-  }
-
-  const scheduledAt = new Date(dueDate)
+  const scheduledAt = new Date(
+    `${dueDate}T00:00:00+05:30`,
+  )
 
   if (Number.isNaN(scheduledAt.getTime())) {
     throw createError({
@@ -62,31 +71,6 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const commanderAssignments =
-    await db.orm.public.UnitAssignment.where({
-      personnelId: commander.id,
-    }).all()
-
-  const commanderUnitIds = commanderAssignments.map(
-    (assignment) => assignment.unitId,
-  )
-
-  const personnelAssignments =
-    await db.orm.public.UnitAssignment.all()
-
-  const belongsToCommanderUnit = personnelAssignments.some(
-    (assignment) =>
-      assignment.personnelId === personnelId &&
-      commanderUnitIds.includes(assignment.unitId),
-  )
-
-  if (!belongsToCommanderUnit) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: 'Personnel not found in your unit',
-    })
-  }
-
   const personnel = await db.orm.public.User.where({
     id: personnelId,
   }).first()
@@ -98,39 +82,41 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const followUp = await db.orm.public.FollowUp.create({
-    userId: personnelId,
-    scheduledAt: scheduledAt.toISOString(),
-    status: 'SCHEDULED',
-    notes: type,
-  })
-
-  const assignment = personnelAssignments.find(
-    (item) =>
-      item.personnelId === personnelId &&
-      commanderUnitIds.includes(item.unitId),
-  )
+  const allAssignments =
+    await db.orm.public.UnitAssignment.all()
 
   const units = await db.orm.public.Unit.all()
+
+  const assignment = allAssignments.find(
+    (item) => item.personnelId === personnel.id,
+  )
 
   const unit = units.find(
     (item) => item.id === assignment?.unitId,
   )
 
+  const created = await db.orm.public.FollowUp.create({
+    userId: personnel.id,
+    scheduledAt: scheduledAt.toISOString(),
+    status: 'SCHEDULED',
+    notes: type,
+  })
+
+  await db.orm.public.Notification.create({
+    userId: personnel.id,
+    title: 'Follow-up Scheduled',
+    message: `You have been scheduled for a welfare follow-up on ${dueDate}.`,
+    type: 'followup',
+    isRead: false,
+  })
+
   return {
-    id: String(followUp.id),
+    id: String(created.id),
     personnelId: String(personnel.id),
     personnelName: personnel.name ?? '',
     subUnit: unit?.name ?? '',
-    type: followUp.notes ?? type,
-    dueDate: new Date(followUp.scheduledAt).toLocaleDateString(
-      'en-GB',
-      {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-      },
-    ),
-    status: 'Upcoming',
+    type,
+    dueDate: formatDate(created.scheduledAt),
+    status: 'Upcoming' as const,
   }
 })

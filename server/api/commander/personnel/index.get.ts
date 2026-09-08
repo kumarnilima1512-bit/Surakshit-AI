@@ -3,19 +3,30 @@ import { getAuthUser } from '../../../utils/auth-session'
 
 type RiskLevel = 'Low' | 'Moderate' | 'Elevated' | 'High'
 
-function normalizeRiskLevel(riskLevel: string | null | undefined): RiskLevel {
-  const value = riskLevel?.toLowerCase()
+function normalizeRiskLevel(
+  riskLevel: string | null | undefined,
+): RiskLevel {
+  const value = riskLevel?.trim().toLowerCase()
 
   if (value === 'high') return 'High'
   if (value === 'elevated') return 'Elevated'
   if (value === 'moderate') return 'Moderate'
+
   return 'Low'
 }
 
-function formatDate(value: string | null | undefined): string {
+function formatDate(
+  value: string | null | undefined,
+): string {
   if (!value) return ''
 
-  return new Date(value).toLocaleDateString('en-GB', {
+  const date = new Date(value)
+
+  if (Number.isNaN(date.getTime())) {
+    return ''
+  }
+
+  return date.toLocaleDateString('en-GB', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -43,96 +54,57 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const commanderAssignments = await db.orm.public.UnitAssignment.where({
-    personnelId: commander.id,
-  }).all()
+  const [allUsers, allAssessments, allFollowUps] =
+    await Promise.all([
+      db.orm.public.User.all(),
+      db.orm.public.Assessment.all(),
+      db.orm.public.FollowUp.all(),
+    ])
 
-  const unitIds = commanderAssignments.map((assignment) => assignment.unitId)
-
-  if (!unitIds.length) {
-    return {
-      commander: {
-        name: commander.name ?? '',
-        rank: commander.rank ?? '',
-        avatarUrl: commander.profilePicture ?? null,
-      },
-      personnel: [],
-    }
-  }
-
-  const assignments = await db.orm.public.UnitAssignment.all()
-
-  const personnelAssignments = assignments.filter(
-    (assignment) =>
-      unitIds.includes(assignment.unitId) &&
-      assignment.personnelId !== commander.id,
-  )
-
-  const personnelIds = [
-    ...new Set(personnelAssignments.map((assignment) => assignment.personnelId)),
-  ]
-
-  if (!personnelIds.length) {
-    return {
-      commander: {
-        name: commander.name ?? '',
-        rank: commander.rank ?? '',
-        avatarUrl: commander.profilePicture ?? null,
-      },
-      personnel: [],
-    }
-  }
-
-  const personnelUsers = await db.orm.public.User.all()
-
-  const personnel = personnelUsers.filter(
+  const personnel = allUsers.filter(
     (user) =>
-      personnelIds.includes(user.id) &&
-      user.role === 'PERSONNEL',
+      user.role === 'PERSONNEL' &&
+      user.id !== commander.id,
   )
-
-  const units = await db.orm.public.Unit.all()
-
-  const assessments = await db.orm.public.Assessment.all()
-
-  const followUps = await db.orm.public.FollowUp.all()
 
   const result = personnel.map((person) => {
-    const personAssignments = personnelAssignments.filter(
-      (assignment) => assignment.personnelId === person.id,
-    )
-
-    const assignment = personAssignments[0]
-
-    const unit = units.find(
-      (item) => item.id === assignment?.unitId,
-    )
-
-    const personAssessments = assessments
-      .filter((assessment) => assessment.userId === person.id)
+    const personAssessments = allAssessments
+      .filter(
+        (assessment) =>
+          assessment.userId === person.id,
+      )
       .sort(
         (a, b) =>
           new Date(b.createdAt).getTime() -
           new Date(a.createdAt).getTime(),
       )
 
-    const latestAssessment = personAssessments[0]
+    const latestAssessment =
+      personAssessments[0]
 
-    const personFollowUps = followUps
-      .filter((followUp) => followUp.userId === person.id)
+    const personFollowUps = allFollowUps
+      .filter(
+        (followUp) =>
+          followUp.userId === person.id,
+      )
       .sort(
         (a, b) =>
           new Date(b.scheduledAt).getTime() -
           new Date(a.scheduledAt).getTime(),
       )
 
-    const latestFollowUp = personFollowUps[0]
+    const latestFollowUp =
+      personFollowUps[0]
 
-    let followUpStatus: 'None' | 'Scheduled' | 'Overdue' = 'None'
+    let followUpStatus:
+      | 'None'
+      | 'Scheduled'
+      | 'Overdue' = 'None'
 
     if (latestFollowUp) {
       followUpStatus =
-        new Date(latestFollowUp.scheduledAt).getTime() < Date.now()
+        new Date(latestFollowUp.scheduledAt).getTime() <
+        Date.now()
           ? 'Overdue'
           : 'Scheduled'
     }
@@ -141,10 +113,20 @@ export default defineEventHandler(async (event) => {
       id: String(person.id),
       name: person.name ?? '',
       rank: person.rank ?? '',
-      subUnit: unit?.name ?? '',
-      riskLevel: normalizeRiskLevel(latestAssessment?.riskLevel),
-      score: latestAssessment?.stressScore ?? 0,
-      lastAssessment: formatDate(latestAssessment?.createdAt),
+      subUnit: 'Unassigned',
+
+      riskLevel: normalizeRiskLevel(
+        latestAssessment?.riskLevel,
+      ),
+
+      score:
+        latestAssessment?.stressScore ?? 0,
+
+      lastAssessment:
+        formatDate(
+          latestAssessment?.createdAt,
+        ),
+
       followUpStatus,
     }
   })
@@ -153,8 +135,10 @@ export default defineEventHandler(async (event) => {
     commander: {
       name: commander.name ?? '',
       rank: commander.rank ?? '',
-      avatarUrl: commander.profilePicture ?? null,
+      avatarUrl:
+        commander.profilePicture ?? null,
     },
+
     personnel: result,
   }
 })

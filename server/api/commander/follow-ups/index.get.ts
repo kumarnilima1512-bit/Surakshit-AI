@@ -34,91 +34,63 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const commanderAssignments =
-    await db.orm.public.UnitAssignment.where({
-      personnelId: commander.id,
-    }).all()
+  const allFollowUps = await db.orm.public.FollowUp.all()
+  const allUsers = await db.orm.public.User.all()
+  const allUnits = await db.orm.public.Unit.all()
+  const allAssignments = await db.orm.public.UnitAssignment.all()
 
-  const unitIds = commanderAssignments.map(
-    (assignment) => assignment.unitId,
+  const personnel = allUsers.filter(
+    (user) => user.role === 'PERSONNEL',
   )
 
-  const personnelAssignments =
-    await db.orm.public.UnitAssignment.all()
+  const now = Date.now()
 
-  const unitPersonnelIds = [
-    ...new Set(
-      personnelAssignments
-        .filter(
-          (assignment) =>
-            unitIds.includes(assignment.unitId) &&
-            assignment.personnelId !== commander.id,
-        )
-        .map((assignment) => assignment.personnelId),
-    ),
-  ]
-
-  const users = await db.orm.public.User.all()
-  const units = await db.orm.public.Unit.all()
-  const followUps = await db.orm.public.FollowUp.all()
-
-  const personnel = users.filter(
-    (user) =>
-      unitPersonnelIds.includes(user.id) &&
-      user.role === 'PERSONNEL',
-  )
-
-  const result = followUps
-    .filter((followUp) => unitPersonnelIds.includes(followUp.userId))
+  const followUps = [...allFollowUps]
+    .sort(
+      (a, b) =>
+        new Date(a.scheduledAt).getTime() -
+        new Date(b.scheduledAt).getTime(),
+    )
     .map((followUp) => {
       const person = personnel.find(
         (user) => user.id === followUp.userId,
       )
 
-      const assignment = personnelAssignments.find(
-        (item) =>
-          item.personnelId === followUp.userId &&
-          unitIds.includes(item.unitId),
+      const assignment = allAssignments.find(
+        (item) => item.personnelId === followUp.userId,
       )
 
-      const unit = units.find(
+      const unit = allUnits.find(
         (item) => item.id === assignment?.unitId,
       )
 
-      let status: FollowUpStatus
+      let status: FollowUpStatus = 'Upcoming'
 
-if (followUp.status?.toUpperCase() === 'COMPLETED') {
-  status = 'Completed'
-} else if (
-  new Date(followUp.scheduledAt).getTime() < Date.now()
-) {
-  status = 'Overdue'
-} else {
-  status = 'Upcoming'
-}
+      if (followUp.status === 'COMPLETED') {
+        status = 'Completed'
+      } else if (
+        new Date(followUp.scheduledAt).getTime() < now
+      ) {
+        status = 'Overdue'
+      }
 
       return {
         id: String(followUp.id),
         personnelId: String(followUp.userId),
-        personnelName: person?.name ?? '',
+        personnelName: person?.name ?? 'Unknown',
         subUnit: unit?.name ?? '',
-        type: followUp.notes ?? 'Welfare Check-in',
+        type: followUp.notes || 'Welfare Check-in',
         dueDate: formatDate(followUp.scheduledAt),
         status,
       }
     })
-    .sort(
-      (a, b) =>
-        new Date(b.dueDate).getTime() -
-        new Date(a.dueDate).getTime(),
-    )
 
   return {
     commander: {
       name: commander.name ?? '',
-      rank: commander.rank ?? '',
+      rank: commander.rank ?? 'Commander',
       avatarUrl: commander.profilePicture ?? null,
     },
-    followUps: result,
+    followUps,
   }
 })
