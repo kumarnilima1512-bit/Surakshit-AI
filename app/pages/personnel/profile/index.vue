@@ -359,7 +359,7 @@ const initials = computed(() => {
 >
   Surakshit AI &nbsp;|&nbsp; Personnel Stress &amp; Welfare Monitoring System
 </footer>
-```
+
 
   </div>
 </template>

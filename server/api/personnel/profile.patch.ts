@@ -1,29 +1,67 @@
-import { getAuthUser } from '../../utils/auth-session'
 import { db } from '../../../src/prisma/db'
+import { getAuthUser } from '../../utils/auth-session'
 
-import {
-  mkdir,
-  writeFile,
-  unlink,
-} from 'node:fs/promises'
+const MAX_IMAGE_SIZE = 2 * 1024 * 1024
 
-import {
-  existsSync,
-} from 'node:fs'
+function validateProfilePicture(value: unknown): string | null | undefined {
+  if (value === undefined) {
+    return undefined
+  }
 
-import {
-  extname,
-  join,
-} from 'node:path'
+  if (value === null || value === '') {
+    return null
+  }
 
-import {
-  randomUUID,
-} from 'node:crypto'
+  if (typeof value !== 'string') {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Invalid profile picture',
+    })
+  }
+
+  if (!value.startsWith('data:image/')) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Profile picture must be a valid image',
+    })
+  }
+
+  const match = value.match(
+    /^data:image\/(jpeg|jpg|png|webp);base64,(.+)$/i,
+  )
+
+  if (!match) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Only JPEG, PNG and WebP images are allowed',
+    })
+  }
+
+  const base64Data = match[2]
+
+  if (!base64Data) {
+  throw createError({
+    statusCode: 400,
+    statusMessage: 'Invalid image data',
+  })
+}
+
+  const padding = (base64Data.match(/=*$/)?.[0].length ?? 0)
+  const decodedSize = Math.floor((base64Data.length * 3) / 4) - padding
+
+  if (decodedSize > MAX_IMAGE_SIZE) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Profile picture must be 2MB or smaller',
+    })
+  }
+
+  return value
+}
 
 export default defineEventHandler(async (event) => {
   const authUser = await getAuthUser(event)
 
-  // Only personnel can update their own profile
   if (authUser.role !== 'PERSONNEL') {
     throw createError({
       statusCode: 403,
@@ -31,279 +69,127 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Get logged-in personnel
-  const user = await db.orm.public.User.first({
-    id: authUser.userId,
-  })
+  const body = await readBody<{
+    name?: string
+    username?: string
+    profilePicture?: string | null
+    removeProfilePicture?: boolean
+  }>(event)
 
-  if (!user) {
-    throw createError({
-      statusCode: 404,
-      statusMessage: 'Personnel account not found',
-    })
-  }
+  const name =
+    body.name !== undefined
+      ? body.name.trim()
+      : undefined
 
-  /*
-   * PATCH request is multipart/form-data because
-   * we are receiving an actual image file.
-   */
-  const parts = await readMultipartFormData(event)
+  const username =
+    body.username !== undefined
+      ? body.username.trim()
+      : undefined
 
-  if (!parts) {
-    throw createError({
-      statusCode: 400,
-      statusMessage: 'Invalid form data',
-    })
-  }
-
-  let name = ''
-  let username = ''
-  let removeProfilePicture = false
-
-  let uploadedFile: {
-    data: Buffer
-    filename: string
-    type: string
-  } | null = null
-
-  for (const part of parts) {
-    const fieldName = part.name
-
-    if (!fieldName) {
-      continue
-    }
-
-    // Text fields
-    if (fieldName === 'name') {
-      name = part.data.toString('utf-8').trim()
-    }
-
-    if (fieldName === 'username') {
-      username = part.data.toString('utf-8').trim()
-    }
-
-    if (fieldName === 'removeProfilePicture') {
-      removeProfilePicture =
-        part.data.toString('utf-8') === 'true'
-    }
-
-    // Image file
-    if (
-      fieldName === 'profilePicture' &&
-      part.filename &&
-      part.type
-    ) {
-      uploadedFile = {
-        data: Buffer.from(part.data),
-        filename: part.filename,
-        type: part.type,
-      }
-    }
-  }
-
-  // Validation
-  if (!name) {
+  if (name !== undefined && !name) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Name is required',
     })
   }
 
-  if (!username) {
+  if (username !== undefined && !username) {
     throw createError({
       statusCode: 400,
       statusMessage: 'Username is required',
     })
   }
 
-  // Check username uniqueness
-  const existingUser = await db.orm.public.User.first({
-    username,
+  if (
+    username !== undefined &&
+    username.length < 3
+  ) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Username must be at least 3 characters',
+    })
+  }
+
+  const currentUser = await db.orm.public.User.first({
+    id: authUser.userId,
   })
 
-  if (existingUser && existingUser.id !== user.id) {
+  if (!currentUser) {
     throw createError({
-      statusCode: 409,
-      statusMessage: 'Username is already in use',
+      statusCode: 404,
+      statusMessage: 'Personnel profile not found',
     })
   }
 
-  /*
-   * Handle profile picture
-   */
-  let profilePicture = user.profilePicture
+  if (username !== undefined) {
+    const existingUser = await db.orm.public.User
+      .where({
+        username,
+      })
+      .first()
 
-  // Remove existing picture
-  if (removeProfilePicture) {
+    if (
+      existingUser &&
+      existingUser.id !== authUser.userId
+    ) {
+      throw createError({
+        statusCode: 409,
+        statusMessage: 'Username is already taken',
+      })
+    }
+  }
+
+  let profilePicture: string | null | undefined
+
+  if (body.removeProfilePicture === true) {
     profilePicture = null
+  } else {
+    profilePicture = validateProfilePicture(
+      body.profilePicture,
+    )
   }
 
-  /*
-   * If a new image was uploaded,
-   * validate and save it.
-   */
-  if (uploadedFile) {
-    const allowedTypes: Record<string, string> = {
-      'image/jpeg': '.jpg',
-      'image/png': '.png',
-      'image/webp': '.webp',
-    }
-
-    const extension = allowedTypes[uploadedFile.type]
-
-    if (!extension) {
-      throw createError({
-        statusCode: 400,
-        statusMessage:
-          'Invalid image format. Please use JPG, PNG, or WebP.',
-      })
-    }
-
-    // Maximum 5 MB
-    const MAX_FILE_SIZE = 5 * 1024 * 1024
-
-    if (uploadedFile.data.length > MAX_FILE_SIZE) {
-      throw createError({
-        statusCode: 400,
-        statusMessage: 'Profile picture must be smaller than 5 MB.',
-      })
-    }
-
-    // Ensure upload directory exists
-    const uploadDirectory = join(
-      process.cwd(),
-      'public',
-      'uploads',
-      'profiles',
-    )
-
-    await mkdir(uploadDirectory, {
-      recursive: true,
-    })
-
-    // Generate safe unique filename
-    const fileName =
-      `${authUser.userId}-${randomUUID()}${extension}`
-
-    const filePath = join(
-      uploadDirectory,
-      fileName,
-    )
-
-    // Save file
-    await writeFile(
-      filePath,
-      uploadedFile.data,
-    )
-
-    // URL accessible from browser
-    profilePicture =
-      `/uploads/profiles/${fileName}`
-  }
-
-  /*
-   * Update database
-   */
   const updatedUser = await db.orm.public.User
     .where({
-      id: user.id,
+      id: authUser.userId,
     })
     .update({
-      name,
-      username,
-      profilePicture,
+      ...(name !== undefined
+        ? { name }
+        : {}),
+
+      ...(username !== undefined
+        ? { username }
+        : {}),
+
+      ...(profilePicture !== undefined
+        ? { profilePicture }
+        : {}),
     })
 
   if (!updatedUser) {
     throw createError({
       statusCode: 404,
-      statusMessage: 'Unable to update profile',
+      statusMessage: 'Personnel profile not found',
     })
-  }
-
-  /*
-   * Delete old image only AFTER successful database update.
-   *
-   * We only delete files belonging to our own
-   * /uploads/profiles/ directory.
-   */
-  if (
-    uploadedFile &&
-    user.profilePicture &&
-    user.profilePicture.startsWith('/uploads/profiles/')
-  ) {
-    const oldFileName =
-      user.profilePicture.replace(
-        '/uploads/profiles/',
-        '',
-      )
-
-    const oldFilePath = join(
-      process.cwd(),
-      'public',
-      'uploads',
-      'profiles',
-      oldFileName,
-    )
-
-    try {
-      if (existsSync(oldFilePath)) {
-        await unlink(oldFilePath)
-      }
-    } catch (error) {
-      console.warn(
-        'Could not delete old profile picture:',
-        error,
-      )
-    }
-  }
-
-  /*
-   * If user removed the picture without uploading
-   * a replacement, delete the old file.
-   */
-  if (
-    removeProfilePicture &&
-    !uploadedFile &&
-    user.profilePicture &&
-    user.profilePicture.startsWith('/uploads/profiles/')
-  ) {
-    const oldFileName =
-      user.profilePicture.replace(
-        '/uploads/profiles/',
-        '',
-      )
-
-    const oldFilePath = join(
-      process.cwd(),
-      'public',
-      'uploads',
-      'profiles',
-      oldFileName,
-    )
-
-    try {
-      if (existsSync(oldFilePath)) {
-        await unlink(oldFilePath)
-      }
-    } catch (error) {
-      console.warn(
-        'Could not delete old profile picture:',
-        error,
-      )
-    }
   }
 
   return {
     success: true,
-    message: 'Profile updated successfully',
-    user: {
+    message:
+      profilePicture !== undefined
+        ? profilePicture
+          ? 'Profile picture updated successfully'
+          : 'Profile picture removed successfully'
+        : 'Profile updated successfully',
+
+    profile: {
       id: updatedUser.id,
+      name: updatedUser.name ?? '',
+      username: updatedUser.username ?? '',
       email: updatedUser.email,
-      name: updatedUser.name,
-      username: updatedUser.username,
-      profilePicture: updatedUser.profilePicture,
-      role: updatedUser.role,
+      profilePicture: updatedUser.profilePicture ?? null,
     },
   }
 })
+

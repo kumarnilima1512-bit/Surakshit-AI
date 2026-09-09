@@ -34,12 +34,13 @@ const {
   pending: loading,
   error: fetchError,
   refresh,
-} = await useFetch<ProfileResponse>('/api/personnel/profile')
+} = await useFetch<ProfileResponse>(
+  '/api/personnel/profile',
+)
 
 const name = ref('')
 const username = ref('')
 
-const selectedFile = ref<File | null>(null)
 const previewUrl = ref('')
 const removeProfilePicture = ref(false)
 
@@ -47,8 +48,15 @@ const saving = ref(false)
 const saveError = ref('')
 const saveSuccess = ref('')
 
-const galleryInput = ref<HTMLInputElement | null>(null)
-const cameraInput = ref<HTMLInputElement | null>(null)
+const galleryInput =
+  ref<HTMLInputElement | null>(null)
+
+const cameraInput =
+  ref<HTMLInputElement | null>(null)
+
+/* ------------------------------------------------------------------
+ * Load profile data
+ * ------------------------------------------------------------------ */
 
 watch(
   () => data.value?.profile,
@@ -58,23 +66,27 @@ watch(
     name.value = profile.name ?? ''
     username.value = profile.username ?? ''
 
-    if (profile.profilePicture) {
-      previewUrl.value = profile.profilePicture
-    } else {
-      previewUrl.value = ''
-    }
+    previewUrl.value =
+      profile.profilePicture ?? ''
+
+    removeProfilePicture.value = false
   },
   {
     immediate: true,
   },
 )
 
+/* ------------------------------------------------------------------
+ * Display helpers
+ * ------------------------------------------------------------------ */
+
 const displayName = computed(() => {
   return name.value.trim() || 'Personnel'
 })
 
 const initials = computed(() => {
-  const cleanName = displayName.value.trim()
+  const cleanName =
+    displayName.value.trim()
 
   if (!cleanName) {
     return 'P'
@@ -83,17 +95,33 @@ const initials = computed(() => {
   return cleanName
     .split(/\s+/)
     .slice(0, 2)
-    .map((part) => part.charAt(0).toUpperCase())
+    .map((part) =>
+      part.charAt(0).toUpperCase(),
+    )
     .join('')
 })
 
+/* ------------------------------------------------------------------
+ * Gallery / Camera
+ * ------------------------------------------------------------------ */
+
 function openGallery() {
+  saveError.value = ''
+  saveSuccess.value = ''
+
   galleryInput.value?.click()
 }
 
 function openCamera() {
+  saveError.value = ''
+  saveSuccess.value = ''
+
   cameraInput.value?.click()
 }
+
+/* ------------------------------------------------------------------
+ * Image selection
+ * ------------------------------------------------------------------ */
 
 function handleImageSelection(
   event: Event,
@@ -101,7 +129,8 @@ function handleImageSelection(
   const input =
     event.target as HTMLInputElement
 
-  const file = input.files?.[0]
+  const file =
+    input.files?.[0]
 
   if (!file) {
     return
@@ -110,7 +139,7 @@ function handleImageSelection(
   saveError.value = ''
   saveSuccess.value = ''
 
-  // Validate file type
+  /* Allowed image types */
   const allowedTypes = [
     'image/jpeg',
     'image/png',
@@ -125,58 +154,83 @@ function handleImageSelection(
     return
   }
 
-  // Maximum 5 MB
+  /* Maximum 2 MB
+   * Same approach as Commander profile.
+   */
   const maxSize =
-    5 * 1024 * 1024
+    2 * 1024 * 1024
 
   if (file.size > maxSize) {
     saveError.value =
-      'Profile picture must be smaller than 5 MB.'
+      'Image size must be 2 MB or less.'
 
     input.value = ''
     return
   }
 
-  selectedFile.value = file
-  removeProfilePicture.value = false
+  /*
+   * Read the image as a Data URL.
+   *
+   * IMPORTANT:
+   * We are NOT creating a file inside the
+   * project directory.
+   *
+   * The resulting string looks like:
+   *
+   * data:image/jpeg;base64,/9j/4AAQ...
+   *
+   * This string will be stored in the
+   * database through the API.
+   */
+  const reader =
+    new FileReader()
 
-  // Revoke previous local preview
-  if (
-    previewUrl.value &&
-    previewUrl.value.startsWith('blob:')
-  ) {
-    URL.revokeObjectURL(
-      previewUrl.value,
-    )
+  reader.onload = () => {
+    const result =
+      reader.result
+
+    if (typeof result !== 'string') {
+      saveError.value =
+        'Could not read the selected image.'
+
+      input.value = ''
+      return
+    }
+
+    previewUrl.value = result
+    removeProfilePicture.value = false
+
+    saveError.value = ''
+    saveSuccess.value = ''
+
+    input.value = ''
   }
 
-  // Create instant preview
-  previewUrl.value =
-    URL.createObjectURL(file)
+  reader.onerror = () => {
+    saveError.value =
+      'Could not read the selected image.'
 
-  // Reset input so the same image
-  // can be selected again if needed
-  input.value = ''
+    input.value = ''
+  }
+
+  reader.readAsDataURL(file)
 }
 
+/* ------------------------------------------------------------------
+ * Remove profile picture
+ * ------------------------------------------------------------------ */
+
 function removePhoto() {
-  selectedFile.value = null
-
-  if (
-    previewUrl.value &&
-    previewUrl.value.startsWith('blob:')
-  ) {
-    URL.revokeObjectURL(
-      previewUrl.value,
-    )
-  }
-
   previewUrl.value = ''
   removeProfilePicture.value = true
 
   saveError.value = ''
   saveSuccess.value = ''
 }
+
+/* ------------------------------------------------------------------
+ * Save profile
+ * ------------------------------------------------------------------ */
 
 async function saveProfile() {
   saveError.value = ''
@@ -191,56 +245,52 @@ async function saveProfile() {
   if (!cleanName) {
     saveError.value =
       'Name is required.'
+
     return
   }
 
   if (!cleanUsername) {
     saveError.value =
       'Username is required.'
+
     return
   }
 
   saving.value = true
 
   try {
-    const formData = new FormData()
+    /*
+     * Commander-এর মতো JSON body ব্যবহার করছি।
+     *
+     * No FormData.
+     * No file upload.
+     * No filesystem.
+     */
+    const updated =
+      await $fetch<{
+        success: boolean
+        message: string
+        profile: PersonnelProfile
+      }>(
+        '/api/personnel/profile',
+        {
+          method: 'PATCH',
+          body: {
+            name: cleanName,
+            username: cleanUsername,
 
-    formData.append(
-      'name',
-      cleanName,
-    )
-
-    formData.append(
-      'username',
-      cleanUsername,
-    )
-
-    formData.append(
-      'removeProfilePicture',
-      removeProfilePicture.value
-        ? 'true'
-        : 'false',
-    )
-
-    if (selectedFile.value) {
-      formData.append(
-        'profilePicture',
-        selectedFile.value,
+            profilePicture:
+              removeProfilePicture.value
+                ? null
+                : previewUrl.value || null,
+          },
+        },
       )
-    }
-
-    await $fetch(
-      '/api/personnel/profile',
-      {
-        method: 'PATCH',
-        body: formData,
-      },
-    )
 
     saveSuccess.value =
+      updated.message ||
       'Profile updated successfully.'
 
-    // Refresh profile data
     await refreshProfile()
 
     setTimeout(() => {
@@ -258,6 +308,10 @@ async function saveProfile() {
   }
 }
 
+/* ------------------------------------------------------------------
+ * Refresh profile
+ * ------------------------------------------------------------------ */
+
 async function refreshProfile() {
   try {
     await refresh()
@@ -265,17 +319,6 @@ async function refreshProfile() {
     // Ignore refresh error after successful update
   }
 }
-
-onBeforeUnmount(() => {
-  if (
-    previewUrl.value &&
-    previewUrl.value.startsWith('blob:')
-  ) {
-    URL.revokeObjectURL(
-      previewUrl.value,
-    )
-  }
-})
 </script>
 
 <template>
@@ -287,20 +330,20 @@ onBeforeUnmount(() => {
       class="border-b border-white/5 bg-[#0d1526]"
     >
       <div
-        class="mx-auto flex max-w-4xl items-center justify-between px-6 py-4"
+        class="mx-auto flex max-w-4xl items-center justify-between gap-4 px-4 py-4 sm:px-6"
       >
-        <div>
+        <div class="min-w-0">
           <div
             class="flex items-center gap-2"
           >
             <User
               :size="20"
               :stroke-width="1.5"
-              class="text-blue-400"
+              class="shrink-0 text-blue-400"
             />
 
             <h1
-              class="text-lg font-bold text-white"
+              class="truncate text-lg font-bold text-white"
             >
               Edit Profile
             </h1>
@@ -316,16 +359,21 @@ onBeforeUnmount(() => {
 
         <NuxtLink
           to="/personnel/profile"
-          class="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
+          class="flex shrink-0 items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
         >
           <ArrowLeft :size="15" />
-          Back to Profile
+          <span class="hidden sm:inline">
+            Back to Profile
+          </span>
+          <span class="sm:hidden">
+            Back
+          </span>
         </NuxtLink>
       </div>
     </header>
 
     <main
-      class="mx-auto max-w-4xl px-6 py-8"
+      class="mx-auto max-w-4xl px-4 py-6 sm:px-6 sm:py-8"
     >
       <!-- Loading -->
       <div
@@ -364,7 +412,7 @@ onBeforeUnmount(() => {
         </p>
 
         <p
-          class="mt-2 text-xs text-slate-400"
+          class="mt-2 max-w-md text-xs leading-relaxed text-slate-400"
         >
           {{ fetchError.message }}
         </p>
@@ -378,13 +426,13 @@ onBeforeUnmount(() => {
       >
         <!-- Personal information -->
         <section
-          class="rounded-2xl border border-white/5 bg-[#0d1526] p-6"
+          class="rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-6"
         >
           <div
             class="flex items-center gap-3"
           >
             <div
-              class="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/15 text-blue-400"
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-400"
             >
               <User
                 :size="18"
@@ -392,7 +440,7 @@ onBeforeUnmount(() => {
               />
             </div>
 
-            <div>
+            <div class="min-w-0">
               <h2
                 class="text-sm font-bold text-white"
               >
@@ -518,13 +566,13 @@ onBeforeUnmount(() => {
 
         <!-- Profile picture -->
         <section
-          class="rounded-2xl border border-white/5 bg-[#0d1526] p-6"
+          class="rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-6"
         >
           <div
             class="flex items-center gap-3"
           >
             <div
-              class="flex h-9 w-9 items-center justify-center rounded-lg bg-violet-500/15 text-violet-400"
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-500/15 text-violet-400"
             >
               <Image
                 :size="18"
@@ -532,7 +580,7 @@ onBeforeUnmount(() => {
               />
             </div>
 
-            <div>
+            <div class="min-w-0">
               <h2
                 class="text-sm font-bold text-white"
               >
@@ -547,7 +595,7 @@ onBeforeUnmount(() => {
             </div>
           </div>
 
-          <!-- Hidden inputs -->
+          <!-- Hidden Gallery Input -->
           <input
             ref="galleryInput"
             type="file"
@@ -556,6 +604,7 @@ onBeforeUnmount(() => {
             @change="handleImageSelection"
           />
 
+          <!-- Hidden Camera Input -->
           <input
             ref="cameraInput"
             type="file"
@@ -586,31 +635,34 @@ onBeforeUnmount(() => {
 
             <!-- Buttons -->
             <div
-              class="mt-5 flex flex-wrap justify-center gap-3"
+              class="mt-5 flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:justify-center"
             >
+              <!-- Gallery -->
               <button
                 type="button"
                 @click="openGallery"
-                class="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-blue-500"
+                class="flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-blue-500"
               >
                 <Upload :size="15" />
                 Gallery
               </button>
 
+              <!-- Camera -->
               <button
                 type="button"
                 @click="openCamera"
-                class="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
+                class="flex items-center justify-center gap-2 rounded-lg border border-white/10 bg-white/5 px-4 py-2.5 text-xs font-bold text-slate-300 transition hover:bg-white/10 hover:text-white"
               >
                 <Camera :size="15" />
                 Camera
               </button>
 
+              <!-- Remove -->
               <button
                 v-if="previewUrl"
                 type="button"
                 @click="removePhoto"
-                class="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-2.5 text-xs font-bold text-red-400 transition hover:bg-red-500/10"
+                class="flex items-center justify-center gap-2 rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-2.5 text-xs font-bold text-red-400 transition hover:bg-red-500/10"
               >
                 <Trash2 :size="15" />
                 Remove
@@ -618,14 +670,14 @@ onBeforeUnmount(() => {
             </div>
 
             <p
-              class="mt-3 text-center text-[10px] text-slate-600"
+              class="mt-3 text-center text-[10px] leading-relaxed text-slate-600"
             >
-              JPG, PNG or WebP · Maximum 5 MB
+              JPG, PNG or WebP · Maximum 2 MB
             </p>
           </div>
         </section>
 
-        <!-- Messages -->
+        <!-- Error -->
         <div
           v-if="saveError"
           class="flex items-start gap-3 rounded-xl border border-red-500/20 bg-red-500/5 p-4"
@@ -636,12 +688,13 @@ onBeforeUnmount(() => {
           />
 
           <p
-            class="text-xs text-red-300"
+            class="break-words text-xs text-red-300"
           >
             {{ saveError }}
           </p>
         </div>
 
+        <!-- Success -->
         <div
           v-if="saveSuccess"
           class="flex items-start gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4"
@@ -652,7 +705,7 @@ onBeforeUnmount(() => {
           />
 
           <p
-            class="text-xs text-emerald-300"
+            class="break-words text-xs text-emerald-300"
           >
             {{ saveSuccess }}
           </p>
@@ -660,7 +713,7 @@ onBeforeUnmount(() => {
 
         <!-- Actions -->
         <div
-          class="flex flex-col-reverse gap-3 rounded-2xl border border-white/5 bg-[#0d1526] p-5 sm:flex-row sm:justify-end"
+          class="flex flex-col-reverse gap-3 rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:flex-row sm:justify-end sm:p-5"
         >
           <NuxtLink
             to="/personnel/profile"
@@ -696,7 +749,7 @@ onBeforeUnmount(() => {
     </main>
 
     <footer
-      class="border-t border-white/5 px-6 py-5 text-center text-[11px] text-slate-500"
+      class="border-t border-white/5 px-4 py-5 text-center text-[11px] text-slate-500 sm:px-6"
     >
       Surakshit AI &nbsp;|&nbsp; Personnel Stress
       &amp; Welfare Monitoring System
