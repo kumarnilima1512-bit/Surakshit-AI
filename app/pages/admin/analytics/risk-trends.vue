@@ -1,9 +1,9 @@
-
 <script setup lang="ts">
 import {
   TrendingUp,
   AlertTriangle,
   RefreshCw,
+  ArrowLeft,
 } from 'lucide-vue-next'
 
 interface RiskData {
@@ -75,6 +75,10 @@ const loadRiskTrends = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const goBack = () => {
+  navigateTo('/admin/dashboard')
 }
 
 const chartWidth = 900
@@ -205,37 +209,64 @@ onMounted(() => {
 
 <template>
   <div class="min-h-screen w-full overflow-x-hidden bg-[#07111f] text-white">
+
     <header
       class="border-b border-white/10 bg-[#0a1626]/95 px-4 py-4 backdrop-blur sm:px-6"
     >
       <div
         class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       >
-        <div class="min-w-0">
-          <h1 class="text-xl font-semibold sm:text-2xl">
-            Risk Trends
-          </h1>
 
-          <p class="mt-1 text-xs leading-5 text-slate-400 sm:text-sm">
-            Monitor changes in personnel risk levels over time
-          </p>
+        <!-- Left Section -->
+        <div class="flex min-w-0 items-center gap-3 sm:gap-4">
+
+          <!-- Back Button -->
+          <button
+            type="button"
+            @click="goBack"
+            class="flex shrink-0 items-center gap-2 rounded-lg border border-white/10 bg-[#07111f] px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400"
+            title="Back to Dashboard"
+          >
+            <ArrowLeft :size="18" />
+
+            <span class="hidden sm:inline">
+              Back
+            </span>
+          </button>
+
+          <!-- Page Title -->
+          <div class="min-w-0">
+            <h1 class="text-xl font-semibold sm:text-2xl">
+              Risk Trends
+            </h1>
+
+            <p class="mt-1 text-xs leading-5 text-slate-400 sm:text-sm">
+              Monitor changes in personnel risk levels over time
+            </p>
+          </div>
+
         </div>
 
+        <!-- Refresh -->
         <button
           type="button"
           :disabled="loading"
           class="flex w-fit shrink-0 items-center justify-center rounded-lg border border-white/10 bg-[#07111f] px-3 py-2.5 text-slate-400 transition hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
           @click="loadRiskTrends"
+          title="Refresh"
         >
           <RefreshCw
             :size="18"
             :class="{ 'animate-spin': loading }"
           />
         </button>
+
       </div>
     </header>
 
     <main class="w-full p-4 sm:p-6">
+
+      <!-- Error -->
       <div
         v-if="error"
         class="mb-6 rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-400"
@@ -243,6 +274,7 @@ onMounted(() => {
         {{ error }}
       </div>
 
+      <!-- Loading -->
       <div
         v-if="loading"
         class="w-full rounded-xl border border-white/10 bg-[#0d1b2d] p-8 text-center text-slate-400 sm:p-10"
@@ -251,10 +283,13 @@ onMounted(() => {
       </div>
 
       <template v-else>
+
         <!-- Risk Summary -->
         <div
           class="grid w-full grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
         >
+
+          <!-- Low -->
           <div
             class="min-w-0 rounded-xl border border-white/10 bg-[#0d1b2d] p-5"
           >
@@ -267,6 +302,7 @@ onMounted(() => {
             </p>
           </div>
 
+          <!-- Moderate -->
           <div
             class="min-w-0 rounded-xl border border-white/10 bg-[#0d1b2d] p-5"
           >
@@ -279,6 +315,7 @@ onMounted(() => {
             </p>
           </div>
 
+          <!-- Elevated -->
           <div
             class="min-w-0 rounded-xl border border-white/10 bg-[#0d1b2d] p-5"
           >
@@ -291,6 +328,7 @@ onMounted(() => {
             </p>
           </div>
 
+          <!-- High -->
           <div
             class="min-w-0 rounded-xl border border-white/10 bg-[#0d1b2d] p-5"
           >
@@ -302,16 +340,20 @@ onMounted(() => {
               {{ riskData.high }}
             </p>
           </div>
+
         </div>
 
         <!-- Risk Trend Graph -->
         <div
           class="mt-6 w-full rounded-xl border border-white/10 bg-[#0d1b2d] p-5 sm:p-8"
         >
+
           <div
             class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
           >
+
             <div class="flex items-center gap-3">
+
               <TrendingUp
                 :size="20"
                 class="shrink-0 text-emerald-400"
@@ -326,6 +368,7 @@ onMounted(() => {
                   Stress score progression across assessments
                 </p>
               </div>
+
             </div>
 
             <div
@@ -337,6 +380,7 @@ onMounted(() => {
 
               Stress Score
             </div>
+
           </div>
 
           <!-- Graph -->
@@ -349,6 +393,7 @@ onMounted(() => {
               class="h-[260px] min-w-[650px] w-full"
               preserveAspectRatio="none"
             >
+
               <!-- Grid -->
               <g>
                 <line
@@ -453,6 +498,7 @@ onMounted(() => {
                   {{ formatDate(point.createdAt) }}
                 </text>
               </g>
+
             </svg>
           </div>
 
@@ -462,6 +508,7 @@ onMounted(() => {
             class="mt-6 flex min-h-[220px] w-full items-center justify-center rounded-lg border border-dashed border-white/10 px-4"
           >
             <div class="text-center">
+
               <AlertTriangle
                 :size="30"
                 class="mx-auto text-slate-600"
@@ -470,6 +517,7 @@ onMounted(() => {
               <p class="mt-3 text-sm leading-6 text-slate-500">
                 No assessment trend data available yet.
               </p>
+
             </div>
           </div>
 
@@ -489,9 +537,9 @@ onMounted(() => {
               Stress score scale: 0–10
             </span>
           </div>
+
         </div>
       </template>
     </main>
   </div>
 </template>
-

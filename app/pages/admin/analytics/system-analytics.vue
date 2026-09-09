@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { ArrowLeft } from 'lucide-vue-next'
 
 interface Analytics {
   users: number
@@ -59,6 +60,10 @@ async function loadAnalytics() {
   }
 }
 
+const goBack = () => {
+  navigateTo('/admin/dashboard')
+}
+
 onMounted(() => {
   loadAnalytics()
 })
@@ -72,16 +77,38 @@ onMounted(() => {
       <div
         class="mx-auto flex max-w-7xl items-center justify-between px-6 py-6"
       >
-        <div>
-          <h1 class="text-2xl font-bold">
-            System Analytics
-          </h1>
 
-          <p class="mt-1 text-sm text-slate-400">
-            Overview of Surakshit AI system activity
-          </p>
+        <!-- Left Section -->
+        <div class="flex items-center gap-4">
+
+          <!-- Back Button -->
+          <button
+            type="button"
+            @click="goBack"
+            class="flex items-center gap-2 rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm font-medium text-slate-200 transition hover:border-emerald-500/40 hover:bg-emerald-500/10 hover:text-emerald-400"
+            title="Back to Dashboard"
+          >
+            <ArrowLeft :size="18" />
+
+            <span class="hidden sm:inline">
+              Back
+            </span>
+          </button>
+
+          <!-- Page Title -->
+          <div>
+            <h1 class="text-2xl font-bold">
+              System Analytics
+            </h1>
+
+            <p class="mt-1 text-sm text-slate-400">
+              Overview of Surakshit AI system activity
+            </p>
+          </div>
+
         </div>
 
+        <!-- Refresh -->
         <button
           type="button"
           :disabled="loading"
@@ -90,6 +117,7 @@ onMounted(() => {
         >
           {{ loading ? 'Refreshing...' : 'Refresh' }}
         </button>
+
       </div>
     </header>
 
@@ -259,6 +287,7 @@ onMounted(() => {
 
               <p class="mt-3 text-2xl font-bold">
                 {{ analytics.avgStress.toFixed(2) }}
+
                 <span class="text-sm font-normal text-slate-500">
                   / 10
                 </span>

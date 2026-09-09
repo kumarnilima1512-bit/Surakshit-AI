@@ -3,6 +3,7 @@ import {
   LogIn,
   RefreshCw,
   Search,
+  ArrowLeft,
 } from 'lucide-vue-next'
 
 interface LoginRecord {
@@ -18,6 +19,10 @@ const history = ref<LoginRecord[]>([])
 const loading = ref(true)
 const error = ref('')
 const search = ref('')
+
+const goBack = () => {
+  navigateTo('/admin/dashboard')
+}
 
 const filteredHistory = computed(() => {
   const query = search.value.toLowerCase().trim()
@@ -60,17 +65,37 @@ onMounted(loadHistory)
     <header
       class="border-b border-white/10 bg-[#0a1626]/95 px-6 py-4 backdrop-blur"
     >
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-semibold">Login History</h1>
-          <p class="mt-1 text-sm text-slate-400">
-            Review successful and unsuccessful login activity
-          </p>
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex min-w-0 items-center gap-3 sm:gap-4">
+          <button
+            type="button"
+            @click="goBack"
+            class="flex shrink-0 items-center gap-2 rounded-lg border border-white/10 bg-[#07111f] px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400"
+            title="Back to Dashboard"
+          >
+            <ArrowLeft :size="18" />
+
+            <span class="hidden sm:inline">
+              Back
+            </span>
+          </button>
+
+          <div class="min-w-0">
+            <h1 class="text-2xl font-semibold">
+              Login History
+            </h1>
+
+            <p class="mt-1 text-sm text-slate-400">
+              Review successful and unsuccessful login activity
+            </p>
+          </div>
         </div>
 
         <button
+          type="button"
           @click="loadHistory"
-          class="rounded-lg border border-white/10 bg-[#07111f] px-3 py-2.5 text-slate-400 transition hover:text-white"
+          class="shrink-0 rounded-lg border border-white/10 bg-[#07111f] px-3 py-2.5 text-slate-400 transition hover:text-white"
+          title="Refresh"
         >
           <RefreshCw :size="18" />
         </button>
@@ -101,7 +126,10 @@ onMounted(loadHistory)
       <div
         class="overflow-hidden rounded-xl border border-white/10 bg-[#0d1b2d]"
       >
-        <div v-if="loading" class="p-10 text-center text-slate-400">
+        <div
+          v-if="loading"
+          class="p-10 text-center text-slate-400"
+        >
           Loading login history...
         </div>
 
@@ -109,22 +137,54 @@ onMounted(loadHistory)
           v-else-if="filteredHistory.length === 0"
           class="p-12 text-center"
         >
-          <LogIn :size="36" class="mx-auto text-slate-600" />
+          <LogIn
+            :size="36"
+            class="mx-auto text-slate-600"
+          />
 
           <p class="mt-4 text-sm text-slate-400">
             No login history available
           </p>
         </div>
 
-        <div v-else class="overflow-x-auto">
+        <div
+          v-else
+          class="overflow-x-auto"
+        >
           <table class="w-full text-left">
-            <thead class="border-b border-white/10 bg-white/[0.02]">
+            <thead
+              class="border-b border-white/10 bg-white/[0.02]"
+            >
               <tr>
-                <th class="px-5 py-4 text-xs uppercase text-slate-500">User</th>
-                <th class="px-5 py-4 text-xs uppercase text-slate-500">IP Address</th>
-                <th class="px-5 py-4 text-xs uppercase text-slate-500">Device</th>
-                <th class="px-5 py-4 text-xs uppercase text-slate-500">Status</th>
-                <th class="px-5 py-4 text-xs uppercase text-slate-500">Date</th>
+                <th
+                  class="px-5 py-4 text-xs uppercase text-slate-500"
+                >
+                  User
+                </th>
+
+                <th
+                  class="px-5 py-4 text-xs uppercase text-slate-500"
+                >
+                  IP Address
+                </th>
+
+                <th
+                  class="px-5 py-4 text-xs uppercase text-slate-500"
+                >
+                  Device
+                </th>
+
+                <th
+                  class="px-5 py-4 text-xs uppercase text-slate-500"
+                >
+                  Status
+                </th>
+
+                <th
+                  class="px-5 py-4 text-xs uppercase text-slate-500"
+                >
+                  Date
+                </th>
               </tr>
             </thead>
 

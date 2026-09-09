@@ -4,6 +4,7 @@ import {
   Download,
   RefreshCw,
   X,
+  ArrowLeft,
 } from 'lucide-vue-next'
 
 interface Report {
@@ -51,6 +52,10 @@ const reportTypes = [
   'Monthly System Report',
 ]
 
+const goBack = () => {
+  navigateTo('/admin/dashboard')
+}
+
 const loadReports = async () => {
   loading.value = true
   error.value = ''
@@ -82,7 +87,7 @@ const openGenerateModal = () => {
 
   const today = new Date()
     .toISOString()
-    .slice(0, 10) // Format as YYYY-MM-DD
+    .slice(0, 10)
 
   if (!fromDate.value) {
     fromDate.value = today
@@ -175,14 +180,29 @@ onMounted(loadReports)
       <div
         class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
       >
-        <div>
-          <h1 class="text-2xl font-semibold">
-            Reports
-          </h1>
+        <div class="flex min-w-0 items-center gap-3 sm:gap-4">
+          <button
+            type="button"
+            @click="goBack"
+            class="flex shrink-0 items-center gap-2 rounded-lg border border-white/10 bg-[#07111f] px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400"
+            title="Back to Dashboard"
+          >
+            <ArrowLeft :size="18" />
 
-          <p class="mt-1 text-sm text-slate-400">
-            Generate and manage system reports
-          </p>
+            <span class="hidden sm:inline">
+              Back
+            </span>
+          </button>
+
+          <div class="min-w-0">
+            <h1 class="text-2xl font-semibold">
+              Reports
+            </h1>
+
+            <p class="mt-1 text-sm text-slate-400">
+              Generate and manage system reports
+            </p>
+          </div>
         </div>
 
         <div class="flex gap-2">

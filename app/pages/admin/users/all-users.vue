@@ -9,6 +9,7 @@ import {
   RefreshCw,
   Pencil,
   Trash2,
+  ArrowLeft,
 } from 'lucide-vue-next'
 
 interface UserData {
@@ -80,6 +81,10 @@ const loadUsers = async () => {
   } finally {
     loading.value = false
   }
+}
+
+const goBack = () => {
+  navigateTo('/admin/dashboard')
 }
 
 const goToCreateUser = () => {
@@ -156,15 +161,29 @@ onMounted(loadUsers)
     <header
       class="border-b border-white/10 bg-[#0a1626]/95 px-6 py-4 backdrop-blur"
     >
-      <div class="flex items-center justify-between">
-        <div>
-          <h1 class="text-2xl font-semibold">
-            All Users
-          </h1>
+      <div class="flex items-center justify-between gap-4">
+        <div class="flex items-center gap-4">
+          <!-- Back Button -->
+          <button
+            @click.stop="goBack"
+            class="flex items-center gap-2 rounded-lg border border-white/10 bg-[#07111f] px-3 py-2 text-sm font-medium text-slate-300 transition hover:border-emerald-500/30 hover:bg-emerald-500/10 hover:text-emerald-400"
+            title="Back to Dashboard"
+          >
+            <ArrowLeft :size="18" />
+            <span class="hidden sm:inline">
+              Back
+            </span>
+          </button>
 
-          <p class="mt-1 text-sm text-slate-400">
-            Manage all registered users and their access roles
-          </p>
+          <div>
+            <h1 class="text-2xl font-semibold">
+              All Users
+            </h1>
+
+            <p class="mt-1 text-sm text-slate-400">
+              Manage all registered users and their access roles
+            </p>
+          </div>
         </div>
 
         <button
