@@ -4,7 +4,10 @@ import { db } from '../../../src/prisma/db'
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['ADMIN'])
 
-  const units = await db.orm.public.Unit.all()
+  const [units, assignments] = await Promise.all([
+    db.orm.public.Unit.all(),
+    db.orm.public.UnitAssignment.all(),
+  ])
 
   return {
     success: true,
@@ -16,6 +19,9 @@ export default defineEventHandler(async (event) => {
       description: unit.description,
       createdAt: unit.createdAt,
       updatedAt: unit.updatedAt,
+      personnelCount: assignments.filter(
+        (assignment) => assignment.unitId === unit.id
+      ).length,
     })),
   }
 })

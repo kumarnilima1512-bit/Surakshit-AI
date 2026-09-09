@@ -83,7 +83,7 @@ const loadUsers = async () => {
 }
 
 const goToCreateUser = () => {
-  navigateTo('/admin/users/create')
+  navigateTo('/admin/users/create-user')
 }
 
 const toggleMenu = (userId: number) => {

@@ -1,18 +1,10 @@
-import { db } from '../../../../../src/prisma/db'
-import { getAuthUser } from '../../../../utils/auth-session'
+import { db } from '../../../../../../src/prisma/db'
+import { getAuthUser } from '../../../../../utils/auth-session'
 import PDFDocument from 'pdfkit'
 
-function formatDate(value: string | null | undefined): string {
-  if (!value) return ''
-
-  return new Date(value).toLocaleDateString('en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  })
-}
-
-function formatDateTime(value: string | null | undefined): string {
+function formatDateTime(
+  value: string | null | undefined,
+): string {
   if (!value) return ''
 
   return new Date(value).toLocaleString('en-GB', {
@@ -25,7 +17,7 @@ function formatDateTime(value: string | null | undefined): string {
 }
 
 function normalizeRisk(value: string): string {
-  const risk = value.toLowerCase()
+  const risk = value.trim().toLowerCase()
 
   if (risk === 'high') return 'High'
   if (risk === 'elevated') return 'Elevated'
@@ -36,17 +28,14 @@ function normalizeRisk(value: string): string {
 }
 
 function parseReportDate(value: string): Date {
-  const directDate = new Date(value)
+  const date = new Date(value)
 
-  if (!Number.isNaN(directDate.getTime())) {
-    return directDate
+  if (!Number.isNaN(date.getTime())) {
+    return date
   }
 
   const parsed = new Date(
-    value.replace(
-      /(\d{2}) (\w{3}) (\d{4})/,
-      '$2 $1, $3',
-    ),
+    value.replace(/(\d{2}) (\w{3}) (\d{4})/, '$2 $1, $3'),
   )
 
   return parsed
@@ -115,7 +104,7 @@ function createPersonnelTable(
       .fontSize(9)
       .fillColor('#6b7280')
       .text(
-        'No personnel assessments found for the selected period.',
+        'No assessments found for the selected report period.',
       )
 
     return
@@ -166,80 +155,66 @@ function createPersonnelTable(
   })
 }
 
-function createUnitRiskSummary(
-  doc: PDFKit.PDFDocument,
-  rows: PersonnelRow[],
-) {
-  doc
-    .moveDown(0.8)
-    .font('Helvetica-Bold')
-    .fontSize(11)
-    .fillColor('#111827')
-    .text('Personnel Risk Assessment')
-
-  doc.moveDown(0.6)
-
-  createPersonnelTable(doc, rows)
-}
-
-function createPersonnelReadinessReport(
+function createSummary(
   doc: PDFKit.PDFDocument,
   rows: PersonnelRow[],
 ) {
   const total = rows.length
 
-  const low = rows.filter(
-    (row) => normalizeRisk(row.riskLevel) === 'Low',
-  ).length
-
-  const moderate = rows.filter(
-    (row) => normalizeRisk(row.riskLevel) === 'Moderate',
+  const high = rows.filter(
+    (row) =>
+      normalizeRisk(row.riskLevel) === 'High',
   ).length
 
   const elevated = rows.filter(
-    (row) => normalizeRisk(row.riskLevel) === 'Elevated',
+    (row) =>
+      normalizeRisk(row.riskLevel) === 'Elevated',
   ).length
 
-  const high = rows.filter(
-    (row) => normalizeRisk(row.riskLevel) === 'High',
+  const moderate = rows.filter(
+    (row) =>
+      normalizeRisk(row.riskLevel) === 'Moderate',
   ).length
+
+  const low = rows.filter(
+    (row) =>
+      normalizeRisk(row.riskLevel) === 'Low',
+  ).length
+
+  const average =
+    total > 0
+      ? rows.reduce(
+          (sum, row) => sum + row.score,
+          0,
+        ) / total
+      : 0
 
   doc
     .moveDown(0.8)
     .font('Helvetica-Bold')
     .fontSize(11)
     .fillColor('#111827')
-    .text('Personnel Readiness Summary')
+    .text('System Risk Summary')
 
   doc
-    .moveDown(0.5)
+    .moveDown(0.6)
     .font('Helvetica')
     .fontSize(9)
     .fillColor('#374151')
 
   doc.text(`Total assessments: ${total}`)
-  doc.text(`Low risk: ${low}`)
-  doc.text(`Moderate risk: ${moderate}`)
-  doc.text(`Elevated risk: ${elevated}`)
+  doc.text(`Average stress score: ${average.toFixed(2)}`)
   doc.text(`High risk: ${high}`)
-
-  doc
-    .moveDown(1)
-    .font('Helvetica-Bold')
-    .fontSize(11)
-    .fillColor('#111827')
-    .text('Personnel Assessment Details')
-
-  doc.moveDown(0.6)
-
-  createPersonnelTable(doc, rows)
+  doc.text(`Elevated risk: ${elevated}`)
+  doc.text(`Moderate risk: ${moderate}`)
+  doc.text(`Low risk: ${low}`)
 }
 
-function createRiskAlertLog(
+function createHighRiskReport(
   doc: PDFKit.PDFDocument,
   rows: PersonnelRow[],
 ) {
-  const alertRows = rows.filter((row) => {
+  const highRiskRows = rows.filter((row) => {
     const risk = normalizeRisk(row.riskLevel)
 
     return risk === 'High' || risk === 'Elevated'
@@ -250,7 +225,7 @@ function createRiskAlertLog(
     .font('Helvetica-Bold')
     .fontSize(11)
     .fillColor('#111827')
-    .text('Risk Alert Log')
+    .text('High-Risk Personnel')
 
   doc
     .moveDown(0.3)
@@ -258,71 +233,12 @@ function createRiskAlertLog(
     .fontSize(8)
     .fillColor('#6b7280')
     .text(
-      `Total elevated/high-risk assessments: ${alertRows.length}`,
+      `Total high-risk assessments: ${highRiskRows.length}`,
     )
 
   doc.moveDown(0.6)
 
-  createPersonnelTable(doc, alertRows)
-}
-
-function createMonthlyCommandReport(
-  doc: PDFKit.PDFDocument,
-  rows: PersonnelRow[],
-) {
-  const total = rows.length
-
-  const high = rows.filter(
-    (row) => normalizeRisk(row.riskLevel) === 'High',
-  ).length
-
-  const elevated = rows.filter(
-    (row) => normalizeRisk(row.riskLevel) === 'Elevated',
-  ).length
-
-  const moderate = rows.filter(
-    (row) => normalizeRisk(row.riskLevel) === 'Moderate',
-  ).length
-
-  const low = rows.filter(
-    (row) => normalizeRisk(row.riskLevel) === 'Low',
-  ).length
-
-  const average =
-    total > 0
-      ? rows.reduce((sum, row) => sum + row.score, 0) / total
-      : 0
-
-  doc
-    .moveDown(0.8)
-    .font('Helvetica-Bold')
-    .fontSize(11)
-    .fillColor('#111827')
-    .text('Monthly Command Summary')
-
-  doc
-    .moveDown(0.6)
-    .font('Helvetica')
-    .fontSize(9)
-    .fillColor('#374151')
-
-  doc.text(`Personnel assessments: ${total}`)
-  doc.text(`Average stress score: ${average.toFixed(2)}`)
-  doc.text(`High risk: ${high}`)
-  doc.text(`Elevated risk: ${elevated}`)
-  doc.text(`Moderate risk: ${moderate}`)
-  doc.text(`Low risk: ${low}`)
-
-  doc
-    .moveDown(1)
-    .font('Helvetica-Bold')
-    .fontSize(11)
-    .fillColor('#111827')
-    .text('Personnel Assessment Details')
-
-  doc.moveDown(0.6)
-
-  createPersonnelTable(doc, rows)
+  createPersonnelTable(doc, highRiskRows)
 }
 
 function createPdf(
@@ -332,7 +248,7 @@ function createPdf(
     fromDate: string
     toDate: string
   },
-  commanderName: string,
+  adminName: string,
   rows: PersonnelRow[],
 ): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -391,27 +307,28 @@ function createPdf(
       .text(
         `Report Period: ${report.fromDate} - ${report.toDate}`,
       )
-      .text(`Generated By: ${commanderName}`)
+      .text(`Generated By: ${adminName}`)
       .text(
-        `Generated On: ${formatDate(
+        `Generated On: ${formatDateTime(
           new Date().toISOString(),
         )}`,
       )
 
-    if (report.type === 'Unit Risk Summary') {
-      createUnitRiskSummary(doc, rows)
-    } else if (
-      report.type === 'Personnel Readiness Report'
-    ) {
-      createPersonnelReadinessReport(doc, rows)
-    } else if (
-      report.type === 'Risk Alert Log'
-    ) {
-      createRiskAlertLog(doc, rows)
-    } else if (
-      report.type === 'Monthly Command Report'
-    ) {
-      createMonthlyCommandReport(doc, rows)
+    if (report.type === 'High-Risk Case Log') {
+      createHighRiskReport(doc, rows)
+    } else {
+      createSummary(doc, rows)
+
+      doc
+        .moveDown(1)
+        .font('Helvetica-Bold')
+        .fontSize(11)
+        .fillColor('#111827')
+        .text('Personnel Assessment Details')
+
+      doc.moveDown(0.6)
+
+      createPersonnelTable(doc, rows)
     }
 
     doc
@@ -419,7 +336,7 @@ function createPdf(
       .fontSize(8)
       .fillColor('#9ca3af')
       .text(
-        'Surakshit AI • Confidential Command Report',
+        'Surakshit AI • Confidential System Report',
         40,
         760,
         {
@@ -435,10 +352,10 @@ function createPdf(
 export default defineEventHandler(async (event) => {
   const user = await getAuthUser(event)
 
-  if (user.role !== 'COMMANDER') {
+  if (user.role !== 'ADMIN') {
     throw createError({
       statusCode: 403,
-      statusMessage: 'Commander access required',
+      statusMessage: 'Admin access required',
     })
   }
 
@@ -453,7 +370,6 @@ export default defineEventHandler(async (event) => {
 
   const report = await db.orm.public.Report.where({
     id,
-    commanderId: user.userId,
   }).first()
 
   if (!report) {
@@ -463,6 +379,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  /*
+   * Convert the report's stored date labels back into
+   * actual Date objects so we can filter assessments
+   * by the selected report period.
+   */
   const fromDate = parseReportDate(report.fromDate)
   const toDate = parseReportDate(report.toDate)
 
@@ -493,20 +414,26 @@ export default defineEventHandler(async (event) => {
   const allAssessments =
     await db.orm.public.Assessment.all()
 
-  // Every assessment inside the selected date range
-  // is included. No "latest assessment" filtering.
+  /*
+   * IMPORTANT:
+   * Do NOT select only the latest assessment.
+   *
+   * Every assessment created inside the selected
+   * report period becomes a separate report row.
+   */
   const periodAssessments = allAssessments
     .filter((assessment) => {
       if (!personnelMap.has(assessment.userId)) {
         return false
       }
 
-      const assessmentTime =
-        new Date(assessment.createdAt).getTime()
+      const assessmentDate = new Date(
+        assessment.createdAt,
+      ).getTime()
 
       return (
-        assessmentTime >= fromDate.getTime() &&
-        assessmentTime <= toDate.getTime()
+        assessmentDate >= fromDate.getTime() &&
+        assessmentDate <= toDate.getTime()
       )
     })
     .sort(
@@ -545,7 +472,13 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  // One row = one assessment.
+  /*
+   * One row = one assessment.
+   *
+   * Therefore the same personnel can appear
+   * multiple times if they submitted multiple
+   * assessments during the selected period.
+   */
   const rows: PersonnelRow[] =
     periodAssessments.map((assessment) => {
       const person = personnelMap.get(
@@ -556,9 +489,7 @@ export default defineEventHandler(async (event) => {
         assessment.userId,
       )
 
-      const unit = unitMap.get(
-        unitId ?? -1,
-      )
+      const unit = unitMap.get(unitId ?? -1)
 
       return {
         name: person?.name ?? 'Unknown',

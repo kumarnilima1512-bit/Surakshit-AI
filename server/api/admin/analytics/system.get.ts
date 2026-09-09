@@ -4,15 +4,41 @@ import { db } from '../../../../src/prisma/db'
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['ADMIN'])
 
-  const users = await db.orm.public.User.all()
-  const units = await db.orm.public.Unit.all()
-  const assignments = await db.orm.public.UnitAssignment.all()
-  const assessments = await db.orm.public.Assessment.all()
-  const posts = await db.orm.public.Post.all()
-  const notifications = await db.orm.public.Notification.all()
+  const [
+    users,
+    units,
+    assignments,
+    assessments,
+    posts,
+    notifications,
+  ] = await Promise.all([
+    db.orm.public.User.all(),
+    db.orm.public.Unit.all(),
+    db.orm.public.UnitAssignment.all(),
+    db.orm.public.Assessment.all(),
+    db.orm.public.Post.all(),
+    db.orm.public.Notification.all(),
+  ])
+
+  const stressScores = assessments
+    .map((assessment) => assessment.stressScore)
+    .filter((score) => typeof score === 'number')
+
+  const avgStress =
+    stressScores.length > 0
+      ? stressScores.reduce((sum, score) => sum + score, 0) /
+        stressScores.length
+      : 0
+
+  const highRisk = assessments.filter((assessment) => {
+    const risk = assessment.riskLevel?.trim().toLowerCase()
+
+    return risk === 'high' || risk === 'elevated'
+  }).length
 
   return {
     success: true,
+
     analytics: {
       users: users.length,
       units: units.length,
@@ -20,6 +46,8 @@ export default defineEventHandler(async (event) => {
       assessments: assessments.length,
       posts: posts.length,
       notifications: notifications.length,
+      avgStress,
+      highRisk,
     },
   }
 })

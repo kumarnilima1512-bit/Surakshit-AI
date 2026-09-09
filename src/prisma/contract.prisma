@@ -51,6 +51,9 @@ model User {
   welfareNotes            WelfareNote[]              @relation("PersonnelWelfareNotes")
   authoredWelfareNotes    WelfareNote[]              @relation("WelfareNoteAuthors")
 
+  auditLogs               AuditLog[]
+  loginHistory            LoginHistory[]
+
   createdAt               TimestamptzString          @default(now())
   updatedAt               temporal.updatedAtString()
 }
@@ -179,4 +182,26 @@ model Intervention {
 
   createdAt         TimestamptzString          @default(now())
   updatedAt         temporal.updatedAtString()
+}
+
+model AuditLog {
+  id        Int               @id @default(autoincrement())
+  userId    Int
+  action    String
+  resource  String
+  ipAddress String?
+  createdAt TimestamptzString @default(now())
+
+  user      User              @relation(fields:[userId], references:[id])
+}
+
+model LoginHistory {
+  id        Int               @id @default(autoincrement())
+  userId    Int?
+  user      User?             @relation(fields:[userId], references:[id])
+
+  ipAddress String?
+  device    String
+  status    String
+  createdAt TimestamptzString @default(now())
 }

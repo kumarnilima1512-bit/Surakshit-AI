@@ -4,17 +4,18 @@ import { db } from '../../../../src/prisma/db'
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['ADMIN'])
 
-  const users = await db.orm.public.User.all()
+  const personnel = await db.orm.public.User.where({
+    role: 'PERSONNEL',
+  }).all()
 
   return {
     success: true,
-
-    users: users.map((user) => ({
+    personnel: personnel.map((user) => ({
       id: user.id,
-      name: user.name,
+      name: user.name ?? null,
+      username: user.username ?? null,
       email: user.email,
       role: user.role,
-      enabled: user.twoFactorEnabled === true,
     })),
   }
 })

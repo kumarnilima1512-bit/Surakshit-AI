@@ -1,6 +1,8 @@
 import { SignJWT } from 'jose'
 import { db } from '../../../src/prisma/db'
 import { verifyPassword } from '../../utils/auth'
+import { createAuditLog } from '../../utils/audit-log'
+import {createLoginHistory,getClientDevice,getClientIP} from '../../utils/login-history'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{
@@ -150,6 +152,22 @@ export default defineEventHandler(async (event) => {
     path: '/',
     maxAge: 60 * 60 * 24,
   })
+
+  //AUDIT LOG
+  
+  await createAuditLog({
+  userId: user.id,
+  action: 'LOGIN',
+  resource: 'Authentication',
+  ipAddress: getRequestIP(event) ?? null,
+})
+
+await createLoginHistory({
+  userId: user.id,
+  ipAddress: getClientIP(event) ?? null,
+  device: getClientDevice(event),
+  status: 'SUCCESS',
+})
 
   // --------------------------------------------------
   // SUCCESS

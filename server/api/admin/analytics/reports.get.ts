@@ -1,40 +1,36 @@
 import { requireRole } from '../../../utils/authorization'
+import { getAuthUser } from '../../../utils/auth-session'
 import { db } from '../../../../src/prisma/db'
 
 export default defineEventHandler(async (event) => {
   await requireRole(event, ['ADMIN'])
 
-  const assessments = await db.orm.public.Assessment.all()
+  const authUser = await getAuthUser(event)
 
-  const total = assessments.length
+  const reports = await db.orm.public.Report.all()
 
-  const distribution = {
-    LOW: 0,
-    MODERATE: 0,
-    ELEVATED: 0,
-    HIGH: 0,
-  }
+  const sortedReports = [...reports].sort(
+    (a, b) =>
+      new Date(b.createdAt).getTime() -
+      new Date(a.createdAt).getTime(),
+  )
 
-  let totalStress = 0
+  const reportRecords = sortedReports.map((report) => ({
+    id: report.id,
+    name: report.name,
+    type: report.type,
+    createdAt: report.createdAt,
+    fromDate: report.fromDate,
+    toDate: report.toDate,
 
-  for (const assessment of assessments) {
-    totalStress += assessment.stressScore
-
-    const risk = assessment.riskLevel.toUpperCase()
-
-    if (risk in distribution) {
-      distribution[risk as keyof typeof distribution]++
-    }
-  }
+    // Admin can download ANY report through the Admin endpoint.
+    downloadUrl:
+      `/api/admin/analytics/reports/${report.id}/download`,
+  }))
 
   return {
     success: true,
-    report: {
-      totalAssessments: total,
-      averageStressScore: total
-        ? Number((totalStress / total).toFixed(2))
-        : 0,
-      riskDistribution: distribution,
-    },
+    generatedBy: authUser.email,
+    reports: reportRecords,
   }
 })

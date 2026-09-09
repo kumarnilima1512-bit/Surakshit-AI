@@ -46,7 +46,7 @@ const loadUnits = async () => {
     const response = await $fetch<{
       success: boolean
       units: UnitData[]
-    }>('/api/admin/unit')
+    }>('/api/admin/units')
 
     units.value = response.units
   } catch (err) {

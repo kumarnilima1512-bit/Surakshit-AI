@@ -70,7 +70,7 @@ const loadData = async () => {
       $fetch<{
         success: boolean
         units: Unit[]
-      }>('/api/admin/unit'),
+      }>('/api/admin/units'),
     ])
 
     personnel.value = personnelResponse.personnel
@@ -98,7 +98,7 @@ const assignPersonnel = async () => {
     const response = await $fetch<{
       success: boolean
       message: string
-    }>('/api/admin/unit/assign', {
+    }>('/api/admin/units/assignments', {
       method: 'POST',
       body: {
         personnelId: Number(selectedPersonnel.value),

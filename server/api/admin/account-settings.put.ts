@@ -10,6 +10,8 @@ export default defineEventHandler(async (event) => {
     username?: string | null
     currentPassword?: string
     newPassword?: string
+    twoFactorEnabled?: boolean
+    twoFactorPin?: string
   }>(event)
 
   const existingUser = await db.orm.public.User.first({
@@ -46,7 +48,10 @@ export default defineEventHandler(async (event) => {
       email,
     })
 
-    if (duplicateEmail && duplicateEmail.id !== existingUser.id) {
+    if (
+      duplicateEmail &&
+      duplicateEmail.id !== existingUser.id
+    ) {
       throw createError({
         statusCode: 409,
         statusMessage: 'Email already exists',
@@ -55,7 +60,10 @@ export default defineEventHandler(async (event) => {
   }
 
   // Check duplicate username
-  if (username && username !== existingUser.username) {
+  if (
+    username &&
+    username !== existingUser.username
+  ) {
     const duplicateUsername = await db.orm.public.User.first({
       username,
     })
@@ -71,9 +79,9 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Password
   let password = existingUser.password
 
-  // Password change requested
   if (body.newPassword) {
     if (!body.currentPassword) {
       throw createError({
@@ -85,7 +93,8 @@ export default defineEventHandler(async (event) => {
     if (body.newPassword.length < 8) {
       throw createError({
         statusCode: 400,
-        statusMessage: 'New password must be at least 8 characters',
+        statusMessage:
+          'New password must be at least 8 characters',
       })
     }
 
@@ -97,11 +106,84 @@ export default defineEventHandler(async (event) => {
     if (!passwordValid) {
       throw createError({
         statusCode: 401,
-        statusMessage: 'Current password is incorrect',
+        statusMessage:
+          'Current password is incorrect',
       })
     }
 
-    password = await hash(body.newPassword, 12)
+    password = await hash(
+      body.newPassword,
+      12,
+    )
+  }
+
+  // Two-factor authentication
+  let twoFactorEnabled =
+    existingUser.twoFactorEnabled
+
+  let twoFactorPinHash =
+    existingUser.twoFactorPinHash
+
+  /*
+   * Enable 2FA
+   *
+   * If 2FA was previously disabled, a new
+   * 6-digit PIN is required.
+   */
+  if (
+    body.twoFactorEnabled === true &&
+    !existingUser.twoFactorEnabled
+  ) {
+    const pin = String(
+      body.twoFactorPin ?? '',
+    ).trim()
+
+    if (!/^\d{6}$/.test(pin)) {
+      throw createError({
+        statusCode: 400,
+        statusMessage:
+          '2FA PIN must be exactly 6 digits',
+      })
+    }
+
+    twoFactorPinHash = await hash(pin, 12)
+    twoFactorEnabled = true
+  }
+
+  /*
+   * Change existing 2FA PIN
+   *
+   * If 2FA is already enabled, a new PIN is
+   * only required when the frontend actually
+   * sends one.
+   */
+  if (
+    body.twoFactorEnabled === true &&
+    existingUser.twoFactorEnabled &&
+    body.twoFactorPin !== undefined
+  ) {
+    const pin = String(
+      body.twoFactorPin,
+    ).trim()
+
+    if (!/^\d{6}$/.test(pin)) {
+      throw createError({
+        statusCode: 400,
+        statusMessage:
+          '2FA PIN must be exactly 6 digits',
+      })
+    }
+
+    twoFactorPinHash = await hash(pin, 12)
+    twoFactorEnabled = true
+  }
+
+  /*
+   * Disable 2FA
+   */
+  if (body.twoFactorEnabled === false) {
+    twoFactorEnabled = false
+    twoFactorPinHash = null
   }
 
   const updatedUser = await db.orm.public.User
@@ -110,17 +192,24 @@ export default defineEventHandler(async (event) => {
       email,
       username,
       password,
+      twoFactorEnabled,
+      twoFactorPinHash,
     })
 
   if (!updatedUser) {
     throw createError({
       statusCode: 500,
-      statusMessage: 'Unable to update account settings',
+      statusMessage:
+        'Unable to update account settings',
     })
   }
 
   return {
     success: true,
-    message: 'Account settings updated successfully',
+    message:
+      'Account settings updated successfully',
+    twoFactor: {
+      enabled: twoFactorEnabled,
+    },
   }
 })

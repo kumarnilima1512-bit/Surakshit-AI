@@ -38,8 +38,12 @@ const loadHistory = async () => {
   error.value = ''
 
   try {
-    // API will be connected later
-    history.value = []
+    const response = await $fetch<{
+      success: boolean
+      history: LoginRecord[]
+    }>('/api/admin/security/login-history')
+
+    history.value = response.history ?? []
   } catch (err) {
     console.error(err)
     error.value = 'Unable to load login history'
