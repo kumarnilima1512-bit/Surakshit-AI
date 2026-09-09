@@ -6,6 +6,12 @@ export default defineNuxtConfig({
   runtimeConfig: {
     mlServiceUrl: process.env.ML_SERVICE_URL
   },
+
+  nitro: {
+    externals: {
+      external: ['pdfkit'],
+    },
+  },
   modules: [
     '@nuxtjs/tailwindcss'
   ]
