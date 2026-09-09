@@ -20,6 +20,7 @@ import {
   User,
   LogOut,
   Menu,
+  X,
   Search,
   Bell as BellIcon,
   Moon,
@@ -166,6 +167,11 @@ async function logout() {
   await navigateTo('/login')
 }
 
+/* ---------------- Mobile sidebar drawer ---------------- */
+const sidebarOpen = ref(false)
+function toggleSidebar() { sidebarOpen.value = !sidebarOpen.value }
+function closeSidebar() { sidebarOpen.value = false }
+
 /* ---------------- Notifications dropdown ---------------- */
 const notificationsOpen = ref(false)
 function toggleNotifications() {
@@ -294,8 +300,18 @@ const ICON_SIZE = 16
 
 <template>
   <div class="flex min-h-screen bg-[#0b1220] text-slate-100">
+    <!-- Mobile overlay -->
+    <div
+      v-if="sidebarOpen"
+      class="fixed inset-0 z-20 bg-black/60 md:hidden"
+      @click="closeSidebar"
+    ></div>
+
     <!-- ================= Sidebar ================= -->
-    <aside class="relative flex w-64 shrink-0 flex-col border-r border-white/5 bg-[#0d1526]">
+    <aside
+      class="fixed inset-y-0 left-0 z-30 flex w-64 shrink-0 flex-col border-r border-white/5 bg-[#0d1526] transition-transform duration-200 ease-in-out md:static md:translate-x-0"
+      :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+    >
       <div class="flex items-center gap-3 px-5 py-5">
         <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400">
           <img
@@ -304,17 +320,26 @@ const ICON_SIZE = 16
   class="h-10 w-10 object-contain"
 />
         </div>
-        <div>
+        <div class="min-w-0 flex-1">
           <p class="text-sm font-bold leading-tight text-white">Surakshit AI</p>
           <p class="text-[10px] leading-tight text-slate-400">Personnel Stress &amp; Welfare Monitoring</p>
         </div>
+        <button
+          type="button"
+          class="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 md:hidden"
+          aria-label="Close menu"
+          @click="closeSidebar"
+        >
+          <X :size="18" />
+        </button>
       </div>
 
-      <nav class="flex-1 space-y-1 px-3">
+      <nav class="flex-1 space-y-1 overflow-y-auto px-3">
         <NuxtLink
           v-for="item in navItems" :key="item.label" :to="item.to"
           class="flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors"
           :class="isActive(item.to) ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-300 hover:bg-white/5'"
+          @click="closeSidebar"
         >
           <span class="flex items-center gap-3">
             <component :is="item.icon" :size="ICON_SIZE" :stroke-width="1.5" />
@@ -359,12 +384,17 @@ const ICON_SIZE = 16
     <!-- ================= Main ================= -->
     <div class="flex min-h-screen flex-1 flex-col">
       <!-- Top bar -->
-      <header class="flex items-center gap-4 border-b border-white/5 bg-[#0d1526] px-6 py-3.5">
-        <button type="button" class="rounded-lg p-2 text-slate-400 hover:bg-white/5" aria-label="Toggle menu">
+      <header class="flex items-center gap-2 border-b border-white/5 bg-[#0d1526] px-3 py-3 sm:gap-4 sm:px-6 sm:py-3.5">
+        <button
+          type="button"
+          class="shrink-0 rounded-lg p-2 text-slate-400 hover:bg-white/5"
+          aria-label="Toggle menu"
+          @click="toggleSidebar"
+        >
           <Menu :size="20" />
         </button>
 
-        <form class="relative max-w-md flex-1" @submit.prevent="submitSearch">
+        <form class="relative hidden max-w-md flex-1 sm:block" @submit.prevent="submitSearch">
           <Search :size="16" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             v-model="searchQuery" type="text" placeholder="Search personnel, unit, or ID..."
@@ -372,7 +402,7 @@ const ICON_SIZE = 16
           >
         </form>
 
-        <div class="ml-auto flex items-center gap-4">
+        <div class="ml-auto flex items-center gap-2 sm:gap-4">
           <div class="relative" data-dropdown-root>
             <button
               type="button" @click.stop="toggleNotifications"
@@ -388,7 +418,7 @@ const ICON_SIZE = 16
 
             <div
               v-if="notificationsOpen"
-              class="absolute right-0 z-20 mt-2 w-72 rounded-xl border border-white/10 bg-[#111a2e] p-2 shadow-xl"
+              class="absolute right-0 z-20 mt-2 w-[85vw] max-w-72 rounded-xl border border-white/10 bg-[#111a2e] p-2 shadow-xl sm:w-72"
             >
               <p class="px-2 py-1.5 text-xs font-bold text-white">Notifications</p>
               <div v-if="!data?.notifications.length" class="px-2 py-4 text-center text-xs text-slate-500">
@@ -407,21 +437,21 @@ const ICON_SIZE = 16
             </div>
           </div>
 
-          <button type="button" class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200" aria-label="Toggle theme">
+          <button type="button" class="hidden rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200 sm:inline-flex" aria-label="Toggle theme">
             <Moon :size="20" :stroke-width="1.5" />
           </button>
 
-          <div class="relative border-l border-white/10 pl-4" data-dropdown-root>
-            <button type="button" @click.stop="toggleProfile" class="flex items-center gap-2.5">
+          <div class="relative border-l border-white/10 pl-2 sm:pl-4" data-dropdown-root>
+            <button type="button" @click.stop="toggleProfile" class="flex items-center gap-2 sm:gap-2.5">
               <div class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-700">
                 <img v-if="data?.officer.avatarUrl" :src="data.officer.avatarUrl" class="h-full w-full object-cover" alt="">
                 <User v-else :size="16" :stroke-width="1.5" class="text-slate-300" />
               </div>
-              <div class="text-left leading-tight">
+              <div class="hidden text-left leading-tight sm:block">
                 <p class="text-sm font-semibold text-white">{{ data?.officer.name }}</p>
                 <p class="text-[11px] text-slate-400">{{ data?.officer.role }}</p>
               </div>
-              <ChevronDown :size="14" class="text-slate-500 transition-transform" :class="{ 'rotate-180': profileOpen }" />
+              <ChevronDown :size="14" class="hidden text-slate-500 transition-transform sm:block" :class="{ 'rotate-180': profileOpen }" />
             </button>
 
             <div
@@ -440,9 +470,20 @@ const ICON_SIZE = 16
         </div>
       </header>
 
-      <main class="flex-1 p-6">
+      <!-- Mobile-only search row -->
+      <div class="border-b border-white/5 bg-[#0d1526] px-3 py-2 sm:hidden">
+        <form class="relative" @submit.prevent="submitSearch">
+          <Search :size="16" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input
+            v-model="searchQuery" type="text" placeholder="Search personnel, unit, or ID..."
+            class="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-4 text-sm text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50"
+          >
+        </form>
+      </div>
+
+      <main class="flex-1 p-3 sm:p-6">
         <!-- Loading state -->
-        <div v-if="loading" class="flex items-center justify-center rounded-2xl border border-white/5 bg-[#0d1526] p-16">
+        <div v-if="loading" class="flex items-center justify-center rounded-2xl border border-white/5 bg-[#0d1526] p-10 sm:p-16">
           <div class="flex flex-col items-center gap-3 text-slate-400">
             <RotateCw :size="22" class="animate-spin" />
             <p class="text-sm">Loading welfare dashboard…</p>
@@ -450,7 +491,7 @@ const ICON_SIZE = 16
         </div>
 
         <!-- Error state -->
-        <div v-else-if="error" class="flex flex-col items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-16 text-center">
+        <div v-else-if="error" class="flex flex-col items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center sm:p-16">
           <AlertTriangle :size="28" class="text-red-400" :stroke-width="1.5" />
           <p class="text-sm font-semibold text-red-300">Couldn't load the welfare dashboard</p>
           <p class="text-xs text-slate-400">{{ error.message }} — expected data from <code class="rounded bg-white/5 px-1.5 py-0.5">/api/welfare/dashboard</code></p>
@@ -462,34 +503,34 @@ const ICON_SIZE = 16
           <!-- ============ Left / main column ============ -->
           <div class="min-w-0 flex-1 space-y-4">
             <!-- Welcome banner -->
-            <div class="relative flex items-center overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-r from-slate-800 to-slate-900 p-6">
+            <div class="relative flex items-center overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-r from-slate-800 to-slate-900 p-4 sm:p-6">
               <svg class="pointer-events-none absolute inset-y-0 right-0 h-full w-64 opacity-25" viewBox="0 0 260 160" preserveAspectRatio="xMaxYMax slice">
                 <path d="M0 160 L60 70 L90 120 L140 40 L180 110 L220 60 L260 120 L260 160 Z" fill="#1e293b" />
                 <circle cx="200" cy="55" r="10" fill="#1e293b" />
               </svg>
-              <div class="relative z-10 flex items-center gap-4">
-                <div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400">
+              <div class="relative z-10 flex items-center gap-3 sm:gap-4">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 sm:h-11 sm:w-11">
                   <User :size="22" :stroke-width="1.5" />
                 </div>
                 <div>
-                  <p class="text-lg font-bold text-white">Welcome, {{ data.officer.name }}</p>
-                  <p class="mt-0.5 text-sm text-slate-300">Your support makes a difference.</p>
-                  <p class="text-sm text-slate-300">Together for a healthier and stronger force.</p>
+                  <p class="text-base font-bold text-white sm:text-lg">Welcome, {{ data.officer.name }}</p>
+                  <p class="mt-0.5 text-xs text-slate-300 sm:text-sm">Your support makes a difference.</p>
+                  <p class="hidden text-sm text-slate-300 sm:block">Together for a healthier and stronger force.</p>
                 </div>
               </div>
-              <p class="relative z-10 ml-auto max-w-[11rem] shrink-0 text-right text-sm italic text-slate-300">
+              <p class="relative z-10 ml-auto hidden max-w-[11rem] shrink-0 text-right text-sm italic text-slate-300 lg:block">
                 "A healthy mind<br>is a stronger force."
               </p>
             </div>
 
             <!-- Stat cards -->
-            <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-              <div v-for="card in data.statCards" :key="card.label" class="rounded-2xl border border-white/5 bg-[#0d1526] p-4">
+            <div class="grid grid-cols-2 gap-3 sm:gap-4 sm:grid-cols-3 lg:grid-cols-5">
+              <div v-for="card in data.statCards" :key="card.label" class="rounded-2xl border border-white/5 bg-[#0d1526] p-3 sm:p-4">
                 <div class="flex h-8 w-8 items-center justify-center rounded-lg" :class="statIconBg[card.icon]">
                   <component :is="statIconMap[card.icon]" :size="16" :stroke-width="1.5" />
                 </div>
                 <p class="mt-3 text-xs font-medium text-slate-400">{{ card.label }}</p>
-                <p class="mt-1 text-2xl font-extrabold text-white">{{ card.value }}</p>
+                <p class="mt-1 text-xl font-extrabold text-white sm:text-2xl">{{ card.value }}</p>
                 <p class="mt-1 text-[11px] font-semibold" :class="footerToneClass[card.footerTone]">
                   {{ card.footerValue }} <span class="font-normal text-slate-500">{{ card.footerText }}</span>
                 </p>
@@ -499,7 +540,7 @@ const ICON_SIZE = 16
 
             <!-- Risk Level Distribution + Average Stress Trend -->
             <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_1.6fr]">
-              <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-5">
+              <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-5">
                 <div class="flex items-center justify-between">
                   <h3 class="text-sm font-bold text-white">Risk Level Distribution</h3>
                   <span class="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-slate-300">
@@ -508,11 +549,11 @@ const ICON_SIZE = 16
                   </span>
                 </div>
                 <div class="relative mt-4 flex items-center justify-center">
-                  <svg viewBox="0 0 180 180" class="h-36 w-36 -rotate-90">
+                  <svg viewBox="0 0 180 180" class="h-32 w-32 -rotate-90 sm:h-36 sm:w-36">
                     <circle v-for="seg in buildDonutSegments(data.riskDistribution)" :key="seg.label" cx="90" cy="90" r="70" fill="none" :stroke="seg.color" stroke-width="20" :stroke-dasharray="seg.dasharray" :stroke-dashoffset="seg.dashoffset" />
                   </svg>
                   <div class="absolute text-center">
-                    <p class="text-2xl font-extrabold text-white">{{ data.totalPersonnelForDonut }}</p>
+                    <p class="text-xl font-extrabold text-white sm:text-2xl">{{ data.totalPersonnelForDonut }}</p>
                     <p class="text-[11px] text-slate-400">Total Personnel</p>
                   </div>
                 </div>
@@ -526,7 +567,7 @@ const ICON_SIZE = 16
                 </div>
               </div>
 
-              <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-5">
+              <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-5">
                 <div class="flex items-center justify-between">
                   <h3 class="text-sm font-bold text-white">Average Stress Trend</h3>
                   <span class="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-medium text-slate-300">
@@ -534,26 +575,28 @@ const ICON_SIZE = 16
                     <ChevronDown :size="12" />
                   </span>
                 </div>
-                <svg :viewBox="`0 0 ${trendW} ${trendH + 26}`" class="mt-4 h-48 w-full">
-                  <line v-for="g in 5" :key="g" x1="0" :x2="trendW" :y1="(trendH / 5) * g" :y2="(trendH / 5) * g" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
-                  <path :d="trendPath(data.stressTrend.values)" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-                  <g v-for="(v, i) in data.stressTrend.values" :key="i">
-                    <circle :cx="pointXY(data.stressTrend.values, i).x" :cy="pointXY(data.stressTrend.values, i).y" r="3.5" fill="#34d399" />
-                    <text :x="pointXY(data.stressTrend.values, i).x" :y="pointXY(data.stressTrend.values, i).y - 10" text-anchor="middle" font-size="11" fill="#cbd5e1">{{ v }}</text>
-                    <text :x="pointXY(data.stressTrend.values, i).x" :y="trendH + 20" text-anchor="middle" font-size="11" fill="#64748b">{{ data.stressTrend.labels[i] }}</text>
-                  </g>
-                </svg>
+                <div class="mt-4 -mx-4 overflow-x-auto px-4 sm:mx-0 sm:overflow-visible sm:px-0">
+                  <svg :viewBox="`0 0 ${trendW} ${trendH + 26}`" class="h-48 w-full min-w-[480px] sm:min-w-0">
+                    <line v-for="g in 5" :key="g" x1="0" :x2="trendW" :y1="(trendH / 5) * g" :y2="(trendH / 5) * g" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
+                    <path :d="trendPath(data.stressTrend.values)" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                    <g v-for="(v, i) in data.stressTrend.values" :key="i">
+                      <circle :cx="pointXY(data.stressTrend.values, i).x" :cy="pointXY(data.stressTrend.values, i).y" r="3.5" fill="#34d399" />
+                      <text :x="pointXY(data.stressTrend.values, i).x" :y="pointXY(data.stressTrend.values, i).y - 10" text-anchor="middle" font-size="11" fill="#cbd5e1">{{ v }}</text>
+                      <text :x="pointXY(data.stressTrend.values, i).x" :y="trendH + 20" text-anchor="middle" font-size="11" fill="#64748b">{{ data.stressTrend.labels[i] }}</text>
+                    </g>
+                  </svg>
+                </div>
               </div>
             </div>
 
             <!-- High-Risk Personnel + Intervention Status -->
             <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1.6fr_1fr]">
-              <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-5">
+              <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-5">
                 <div class="flex items-center justify-between">
                   <h3 class="text-sm font-bold text-white">High-Risk Personnel</h3>
                   <NuxtLink to="/welfare/high-risk-cases" class="text-xs font-semibold text-emerald-400 hover:underline">View All →</NuxtLink>
                 </div>
-                <div class="mt-3 overflow-x-auto">
+                <div class="mt-3 -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
                   <table class="w-full min-w-[520px] text-left text-xs">
                     <thead>
                       <tr class="text-slate-500">
@@ -588,14 +631,14 @@ const ICON_SIZE = 16
                 </div>
               </div>
 
-              <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-5">
+              <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-5">
                 <h3 class="text-sm font-bold text-white">Intervention Status</h3>
                 <div class="relative mt-4 flex items-center justify-center">
-                  <svg viewBox="0 0 180 180" class="h-36 w-36 -rotate-90">
+                  <svg viewBox="0 0 180 180" class="h-32 w-32 -rotate-90 sm:h-36 sm:w-36">
                     <circle v-for="seg in buildDonutSegments(data.interventionStatus)" :key="seg.label" cx="90" cy="90" r="70" fill="none" :stroke="seg.color" stroke-width="20" :stroke-dasharray="seg.dasharray" :stroke-dashoffset="seg.dashoffset" />
                   </svg>
                   <div class="absolute text-center">
-                    <p class="text-2xl font-extrabold text-white">{{ data.totalInterventions }}</p>
+                    <p class="text-xl font-extrabold text-white sm:text-2xl">{{ data.totalInterventions }}</p>
                     <p class="text-[11px] text-slate-400">Total Interventions</p>
                   </div>
                 </div>
@@ -612,12 +655,12 @@ const ICON_SIZE = 16
 
             <!-- Recent Assessments + Welfare Recommendations -->
             <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-              <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-5">
+              <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-5">
                 <div class="flex items-center justify-between">
                   <h3 class="text-sm font-bold text-white">Recent Assessments</h3>
                   <NuxtLink to="/welfare/analytics" class="text-xs font-semibold text-emerald-400 hover:underline">View All →</NuxtLink>
                 </div>
-                <div class="mt-3 overflow-x-auto">
+                <div class="mt-3 -mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0">
                   <table class="w-full min-w-[360px] text-left text-xs">
                     <thead>
                       <tr class="text-slate-500">
@@ -644,7 +687,7 @@ const ICON_SIZE = 16
                 </div>
               </div>
 
-              <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-5">
+              <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-5">
                 <div class="flex items-center justify-between">
                   <h3 class="text-sm font-bold text-white">Welfare Recommendations (Top 5)</h3>
                   <NuxtLink to="/welfare/interventions" class="text-xs font-semibold text-emerald-400 hover:underline">View All →</NuxtLink>
@@ -775,3 +818,18 @@ const ICON_SIZE = 16
     </div>
   </div>
 </template>
+
+<style>
+/* Fixes the white flash that shows above/below the page on mobile
+   overscroll ("rubber-band") bounce when scrolling past the top/bottom. */
+html,
+body {
+  background-color: #0b1220;
+  height: 100%;
+}
+
+#__nuxt {
+  background-color: #0b1220;
+  min-height: 100%;
+}
+</style>

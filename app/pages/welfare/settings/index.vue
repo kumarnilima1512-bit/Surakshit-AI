@@ -1,5 +1,16 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import {
+  ArrowLeft,
+  Menu,
+  X,
+  ShieldCheck,
+  Bell,
+  User,
+  LogOut,
+  Eye,
+  EyeOff,
+} from 'lucide-vue-next'
 
 interface NotificationPrefs {
   highRiskAlerts: boolean
@@ -19,6 +30,29 @@ const {
   error,
   refresh: fetchSettings,
 } = await useFetch<SettingsData>('/api/welfare/settings')
+
+/* =========================
+   MOBILE SIDEBAR
+========================= */
+
+const route = useRoute()
+
+const sidebarOpen = ref(false)
+
+function closeSidebar() {
+  sidebarOpen.value = false
+}
+
+function goBack() {
+  navigateTo('/welfare/dashboard')
+}
+
+watch(
+  () => route.path,
+  () => {
+    sidebarOpen.value = false
+  },
+)
 
 /* =========================
    PASSWORD
@@ -184,20 +218,15 @@ async function toggleTwoFactor() {
     if (nextState) {
       twoFactorSuccess.value =
         'Two-factor authentication enabled successfully.'
-
-      twoFactorPin.value = ''
-      confirmTwoFactorPin.value = ''
-      showTwoFactorPin.value = false
-      showConfirmTwoFactorPin.value = false
     } else {
       twoFactorSuccess.value =
         'Two-factor authentication disabled.'
-
-      twoFactorPin.value = ''
-      confirmTwoFactorPin.value = ''
-      showTwoFactorPin.value = false
-      showConfirmTwoFactorPin.value = false
     }
+
+    twoFactorPin.value = ''
+    confirmTwoFactorPin.value = ''
+    showTwoFactorPin.value = false
+    showConfirmTwoFactorPin.value = false
   } catch (err: any) {
     twoFactorError.value =
       err?.data?.statusMessage ||
@@ -289,26 +318,231 @@ async function logout() {
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#07100d] text-slate-200">
+  <div class="min-h-screen min-w-0 bg-[#07100d] text-slate-200">
 
-    <!-- HEADER -->
+    <!-- =========================================================
+         MOBILE TOP BAR
+    ========================================================== -->
+
     <div
-      class="border-b border-white/5 bg-[#09130f]/90 px-6 py-5"
+      class="sticky top-0 z-30 flex items-center justify-between border-b border-white/5 bg-[#09130f]/95 px-4 py-3 backdrop-blur lg:hidden"
+    >
+      <div class="flex min-w-0 items-center gap-3">
+        <button
+          type="button"
+          @click="sidebarOpen = true"
+          class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+          aria-label="Open menu"
+        >
+          <Menu :size="20" />
+        </button>
+
+        <div class="min-w-0">
+          <p class="truncate text-sm font-semibold text-white">
+            System Settings
+          </p>
+
+          <p class="truncate text-[10px] text-slate-500">
+            Welfare Officer
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        @click="goBack"
+        class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-semibold text-slate-300 hover:bg-white/10 hover:text-white"
+      >
+        <ArrowLeft :size="14" />
+        Back
+      </button>
+    </div>
+
+    <!-- =========================================================
+         MOBILE SIDEBAR OVERLAY
+    ========================================================== -->
+
+    <div
+      v-if="sidebarOpen"
+      class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+      @click="closeSidebar"
+    />
+
+    <!-- =========================================================
+         MOBILE SIDEBAR
+    ========================================================== -->
+
+    <aside
+      v-if="sidebarOpen"
+      class="fixed inset-y-0 left-0 z-50 flex w-72 max-w-[85vw] flex-col border-r border-white/10 bg-[#0d1813] shadow-2xl lg:hidden"
+    >
+      <div
+        class="flex items-center justify-between border-b border-white/5 px-5 py-5"
+      >
+        <div class="flex min-w-0 items-center gap-3">
+          <div
+            class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15"
+          >
+            <img
+              src="/logos/surakshit-ai.png"
+              alt="Surakshit AI"
+              class="h-9 w-9 object-contain"
+            />
+          </div>
+
+          <div class="min-w-0">
+            <p class="text-sm font-bold text-white">
+              Surakshit AI
+            </p>
+
+            <p class="text-[10px] leading-tight text-slate-500">
+              Personnel Stress &amp; Welfare Monitoring
+            </p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          @click="closeSidebar"
+          class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+          aria-label="Close menu"
+        >
+          <X :size="20" />
+        </button>
+      </div>
+
+      <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+
+        <NuxtLink
+          to="/welfare/dashboard"
+          @click="closeSidebar"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-slate-300 hover:bg-white/5 hover:text-white"
+        >
+          <ShieldCheck :size="16" />
+          Dashboard
+        </NuxtLink>
+
+        <NuxtLink
+          to="/welfare/personnel"
+          @click="closeSidebar"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-slate-300 hover:bg-white/5 hover:text-white"
+        >
+          <User :size="16" />
+          Personnel
+        </NuxtLink>
+
+        <NuxtLink
+          to="/welfare/high-risk-cases"
+          @click="closeSidebar"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-slate-300 hover:bg-white/5 hover:text-white"
+        >
+          <ShieldCheck :size="16" />
+          High-Risk Cases
+        </NuxtLink>
+
+        <NuxtLink
+          to="/welfare/interventions"
+          @click="closeSidebar"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-slate-300 hover:bg-white/5 hover:text-white"
+        >
+          <ShieldCheck :size="16" />
+          Interventions
+        </NuxtLink>
+
+        <NuxtLink
+          to="/welfare/follow-ups"
+          @click="closeSidebar"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-slate-300 hover:bg-white/5 hover:text-white"
+        >
+          <ShieldCheck :size="16" />
+          Follow-ups
+        </NuxtLink>
+
+        <NuxtLink
+          to="/welfare/analytics"
+          @click="closeSidebar"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-slate-300 hover:bg-white/5 hover:text-white"
+        >
+          <ShieldCheck :size="16" />
+          Analytics
+        </NuxtLink>
+
+        <NuxtLink
+          to="/welfare/reports"
+          @click="closeSidebar"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-slate-300 hover:bg-white/5 hover:text-white"
+        >
+          <ShieldCheck :size="16" />
+          Reports
+        </NuxtLink>
+
+        <div class="my-3 border-t border-white/5" />
+
+        <NuxtLink
+          to="/welfare/profile"
+          @click="closeSidebar"
+          class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold text-slate-300 hover:bg-white/5 hover:text-white"
+        >
+          <User :size="16" />
+          Profile
+        </NuxtLink>
+
+        <button
+          type="button"
+          @click="logout"
+          class="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm font-semibold text-slate-400 hover:bg-red-500/10 hover:text-red-300"
+        >
+          <LogOut :size="16" />
+          Logout
+        </button>
+      </nav>
+    </aside>
+
+    <!-- =========================================================
+         HEADER
+    ========================================================== -->
+
+    <div
+      class="hidden border-b border-white/5 bg-[#09130f]/90 px-4 py-5 sm:px-6 lg:block"
     >
       <div class="mx-auto max-w-7xl">
-        <h1 class="text-xl font-semibold text-white">
-          System Settings
-        </h1>
 
-        <p class="mt-1 text-xs text-slate-500">
-          Manage your account security, notifications and preferences.
-        </p>
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <div class="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                @click="goBack"
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
+              >
+                <ArrowLeft :size="14" />
+                Back
+              </button>
+
+              <h1 class="text-xl font-semibold text-white">
+                System Settings
+              </h1>
+            </div>
+
+            <p class="mt-2 text-xs text-slate-500 sm:ml-[70px]">
+              Manage your account security, notifications and preferences.
+            </p>
+          </div>
+        </div>
+
       </div>
     </div>
 
-    <main class="mx-auto max-w-7xl space-y-6 px-6 py-6">
+    <!-- =========================================================
+         MAIN
+    ========================================================== -->
+
+    <main
+      class="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:space-y-6 sm:px-6 sm:py-6"
+    >
 
       <!-- LOADING -->
+
       <div
         v-if="loading"
         class="rounded-xl border border-white/5 bg-white/[0.02] p-6 text-sm text-slate-400"
@@ -317,26 +551,44 @@ async function logout() {
       </div>
 
       <!-- ERROR -->
+
       <div
         v-else-if="error || !data"
-        class="rounded-xl border border-red-500/20 bg-red-500/5 p-6 text-sm text-red-300"
+        class="rounded-xl border border-red-500/20 bg-red-500/5 p-5 text-sm text-red-300 sm:p-6"
       >
-        Unable to load system settings.
+        <p>
+          Unable to load system settings.
+        </p>
+
+        <button
+          type="button"
+          @click="fetchSettings()"
+          class="mt-3 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-300 hover:bg-red-500/20"
+        >
+          Retry
+        </button>
       </div>
 
       <template v-else>
 
-        <!-- =========================
+        <!-- =======================================================
              SECURITY
-        ========================== -->
+        ======================================================== -->
 
         <section
-          class="rounded-xl border border-white/5 bg-white/[0.02] p-6"
+          class="rounded-xl border border-white/5 bg-white/[0.02] p-4 sm:p-6"
         >
           <div class="mb-5">
-            <h2 class="text-sm font-semibold text-white">
-              Security
-            </h2>
+            <div class="flex items-center gap-2">
+              <ShieldCheck
+                :size="17"
+                class="text-emerald-400"
+              />
+
+              <h2 class="text-sm font-semibold text-white">
+                Security
+              </h2>
+            </div>
 
             <p class="mt-1 text-xs text-slate-500">
               Protect your welfare officer account.
@@ -345,15 +597,13 @@ async function logout() {
 
           <!-- CHANGE PASSWORD -->
 
-          <div
-            class="border-b border-white/5 pb-6"
-          >
+          <div class="border-b border-white/5 pb-6">
             <div class="mb-4">
               <h3 class="text-xs font-semibold text-slate-200">
                 Change Password
               </h3>
 
-              <p class="mt-1 text-[11px] text-slate-500">
+              <p class="mt-1 text-[11px] leading-relaxed text-slate-500">
                 Update your account password regularly for better security.
               </p>
             </div>
@@ -361,7 +611,9 @@ async function logout() {
             <div class="grid gap-4 md:grid-cols-3">
 
               <div>
-                <label class="mb-2 block text-[11px] font-semibold text-slate-400">
+                <label
+                  class="mb-2 block text-[11px] font-semibold text-slate-400"
+                >
                   Current Password
                 </label>
 
@@ -370,12 +622,14 @@ async function logout() {
                   type="password"
                   autocomplete="current-password"
                   placeholder="Current password"
-                  class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
+                  class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
                 />
               </div>
 
               <div>
-                <label class="mb-2 block text-[11px] font-semibold text-slate-400">
+                <label
+                  class="mb-2 block text-[11px] font-semibold text-slate-400"
+                >
                   New Password
                 </label>
 
@@ -384,12 +638,14 @@ async function logout() {
                   type="password"
                   autocomplete="new-password"
                   placeholder="Minimum 8 characters"
-                  class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
+                  class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
                 />
               </div>
 
               <div>
-                <label class="mb-2 block text-[11px] font-semibold text-slate-400">
+                <label
+                  class="mb-2 block text-[11px] font-semibold text-slate-400"
+                >
                   Confirm Password
                 </label>
 
@@ -398,7 +654,7 @@ async function logout() {
                   type="password"
                   autocomplete="new-password"
                   placeholder="Confirm new password"
-                  class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
+                  class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
                 />
               </div>
 
@@ -406,7 +662,7 @@ async function logout() {
 
             <p
               v-if="passwordError"
-              class="mt-3 text-xs text-red-400"
+              class="mt-3 text-xs leading-relaxed text-red-400"
             >
               {{ passwordError }}
             </p>
@@ -421,7 +677,7 @@ async function logout() {
             <button
               type="button"
               :disabled="passwordLoading"
-              class="mt-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+              class="mt-4 w-full rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
               @click="changePassword"
             >
               {{
@@ -440,15 +696,14 @@ async function logout() {
               class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"
             >
 
-              <div class="flex gap-3">
-
+              <div class="flex min-w-0 gap-3">
                 <div
                   class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400"
                 >
                   🔐
                 </div>
 
-                <div>
+                <div class="min-w-0">
                   <h3 class="text-xs font-semibold text-slate-200">
                     Two-Factor Authentication
                   </h3>
@@ -458,13 +713,12 @@ async function logout() {
                     password when signing in.
                   </p>
                 </div>
-
               </div>
 
               <button
                 type="button"
                 :disabled="togglingTwoFactor"
-                class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-50"
+                class="relative inline-flex h-6 w-11 shrink-0 items-center self-start rounded-full transition disabled:cursor-not-allowed disabled:opacity-50"
                 :class="
                   data.twoFactorEnabled
                     ? 'bg-emerald-500'
@@ -515,7 +769,7 @@ async function logout() {
                       maxlength="6"
                       autocomplete="new-password"
                       placeholder="Enter 6-digit PIN"
-                      class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 pr-10 text-xs tracking-[0.3em] text-slate-200 outline-none focus:border-emerald-500/50"
+                      class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 pr-10 text-xs tracking-[0.3em] text-slate-200 outline-none focus:border-emerald-500/50"
                       @input="
                         twoFactorPin = sanitizeTwoFactorPin(
                           ($event.target as HTMLInputElement).value
@@ -525,7 +779,7 @@ async function logout() {
 
                     <button
                       type="button"
-                      class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 transition hover:text-emerald-400"
+                      class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-emerald-400"
                       :aria-label="
                         showTwoFactorPin
                           ? 'Hide security PIN'
@@ -536,42 +790,15 @@ async function logout() {
                           !showTwoFactorPin
                       "
                     >
-                      <svg
-                        v-if="!showTwoFactorPin"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="currentColor"
-                        class="h-4 w-4"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M2.036 12.322a1.012 1.012 0 010-.644C3.423 7.51 7.36 4.5 12 4.5c4.64 0 8.577 3.01 9.964 7.178.07.21.07.434 0 .644C20.577 16.49 16.64 19.5 12 19.5c-4.64 0-8.577-3.01-9.964-7.178z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
+                      <EyeOff
+                        v-if="showTwoFactorPin"
+                        :size="16"
+                      />
 
-                      <svg
+                      <Eye
                         v-else
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="currentColor"
-                        class="h-4 w-4"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.443 7.315 19.5 12 19.5c1.524 0 2.971-.325 4.276-.91M6.228 6.228A10.45 10.45 0 0112 4.5c4.685 0 8.774 3.057 10.066 7.5a10.523 10.523 0 01-4.122 5.178M6.228 6.228L3 3m3.228 3.228l3.16 3.16m5.384 5.384L21 21m-6.228-6.228a3 3 0 01-4.243-4.243"
-                        />
-                      </svg>
+                        :size="16"
+                      />
                     </button>
 
                   </div>
@@ -603,7 +830,7 @@ async function logout() {
                       maxlength="6"
                       autocomplete="new-password"
                       placeholder="Re-enter 6-digit PIN"
-                      class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 pr-10 text-xs tracking-[0.3em] text-slate-200 outline-none focus:border-emerald-500/50"
+                      class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 pr-10 text-xs tracking-[0.3em] text-slate-200 outline-none focus:border-emerald-500/50"
                       @input="
                         confirmTwoFactorPin =
                           sanitizeTwoFactorPin(
@@ -614,7 +841,7 @@ async function logout() {
 
                     <button
                       type="button"
-                      class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 transition hover:text-emerald-400"
+                      class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-emerald-400"
                       :aria-label="
                         showConfirmTwoFactorPin
                           ? 'Hide confirmation PIN'
@@ -625,42 +852,15 @@ async function logout() {
                           !showConfirmTwoFactorPin
                       "
                     >
-                      <svg
-                        v-if="!showConfirmTwoFactorPin"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="currentColor"
-                        class="h-4 w-4"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M2.036 12.322a1.012 1.012 0 010-.644C3.423 7.51 7.36 4.5 12 4.5c4.64 0 8.577 3.01 9.964 7.178.07.21.07.434 0 .644C20.577 16.49 16.64 19.5 12 19.5c-4.64 0-8.577-3.01-9.964-7.178z"
-                        />
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
+                      <EyeOff
+                        v-if="showConfirmTwoFactorPin"
+                        :size="16"
+                      />
 
-                      <svg
+                      <Eye
                         v-else
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke-width="1.5"
-                        stroke="currentColor"
-                        class="h-4 w-4"
-                      >
-                        <path
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                          d="M3.98 8.223A10.477 10.477 0 001.934 12C3.226 16.443 7.315 19.5 12 19.5c1.524 0 2.971-.325 4.276-.91M6.228 6.228A10.45 10.45 0 0112 4.5c4.685 0 8.774 3.057 10.066 7.5a10.523 10.523 0 01-4.122 5.178M6.228 6.228L3 3m3.228 3.228l3.16 3.16m5.384 5.384L21 21m-6.228-6.228a3 3 0 01-4.243-4.243"
-                        />
-                      </svg>
+                        :size="16"
+                      />
                     </button>
 
                   </div>
@@ -686,7 +886,9 @@ async function logout() {
 
               </div>
 
-              <div class="mt-4 flex items-center justify-between gap-4">
+              <div
+                class="mt-4 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+              >
 
                 <p class="text-[10px] leading-relaxed text-slate-500">
                   After enabling 2FA, this PIN will be required
@@ -699,7 +901,7 @@ async function logout() {
                     togglingTwoFactor ||
                     !twoFactorPinsMatch
                   "
-                  class="shrink-0 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+                  class="w-full shrink-0 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-40 sm:w-auto"
                   @click="toggleTwoFactor"
                 >
                   {{
@@ -727,7 +929,7 @@ async function logout() {
                 </p>
               </div>
 
-              <p class="mt-1 pl-5 text-[10px] text-slate-500">
+              <p class="mt-1 pl-5 text-[10px] leading-relaxed text-slate-500">
                 Your 6-digit security PIN will be requested
                 during login.
               </p>
@@ -737,14 +939,14 @@ async function logout() {
 
             <p
               v-if="twoFactorError"
-              class="mt-3 text-xs text-red-400"
+              class="mt-3 text-xs leading-relaxed text-red-400"
             >
               {{ twoFactorError }}
             </p>
 
             <p
               v-if="twoFactorSuccess"
-              class="mt-3 text-xs text-emerald-400"
+              class="mt-3 text-xs leading-relaxed text-emerald-400"
             >
               {{ twoFactorSuccess }}
             </p>
@@ -752,36 +954,45 @@ async function logout() {
           </div>
         </section>
 
-        <!-- =========================
+        <!-- =======================================================
              NOTIFICATIONS
-        ========================== -->
+        ======================================================== -->
 
         <section
-          class="rounded-xl border border-white/5 bg-white/[0.02] p-6"
+          class="rounded-xl border border-white/5 bg-white/[0.02] p-4 sm:p-6"
         >
           <div class="mb-5">
-            <h2 class="text-sm font-semibold text-white">
-              Notifications
-            </h2>
+            <div class="flex items-center gap-2">
+              <Bell
+                :size="17"
+                class="text-emerald-400"
+              />
+
+              <h2 class="text-sm font-semibold text-white">
+                Notifications
+              </h2>
+            </div>
 
             <p class="mt-1 text-xs text-slate-500">
               Choose which welfare system notifications you receive.
             </p>
           </div>
 
-          <div class="space-y-4">
+          <div class="space-y-3 sm:space-y-4">
 
             <div
               v-for="field in notificationFields"
               :key="field.key"
-              class="flex items-start justify-between gap-4 rounded-lg border border-white/5 bg-black/10 p-4"
+              class="flex items-start justify-between gap-3 rounded-lg border border-white/5 bg-black/10 p-3 sm:gap-4 sm:p-4"
             >
-              <div>
+              <div class="min-w-0 pr-2">
                 <h3 class="text-xs font-medium text-slate-200">
                   {{ field.label }}
                 </h3>
 
-                <p class="mt-1 max-w-2xl text-[10px] leading-relaxed text-slate-500">
+                <p
+                  class="mt-1 max-w-2xl text-[10px] leading-relaxed text-slate-500"
+                >
                   {{ field.description }}
                 </p>
               </div>
@@ -814,14 +1025,14 @@ async function logout() {
 
           <p
             v-if="notificationError"
-            class="mt-3 text-xs text-red-400"
+            class="mt-3 text-xs leading-relaxed text-red-400"
           >
             {{ notificationError }}
           </p>
 
           <p
             v-if="notificationSuccess"
-            class="mt-3 text-xs text-emerald-400"
+            class="mt-3 text-xs leading-relaxed text-emerald-400"
           >
             {{ notificationSuccess }}
           </p>
@@ -829,7 +1040,7 @@ async function logout() {
           <button
             type="button"
             :disabled="savingNotifications"
-            class="mt-5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+            class="mt-5 w-full rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-2.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-500/20 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
             @click="saveNotifications"
           >
             {{
@@ -840,17 +1051,24 @@ async function logout() {
           </button>
         </section>
 
-        <!-- =========================
+        <!-- =======================================================
              ACCOUNT
-        ========================== -->
+        ======================================================== -->
 
         <section
-          class="rounded-xl border border-white/5 bg-white/[0.02] p-6"
+          class="rounded-xl border border-white/5 bg-white/[0.02] p-4 sm:p-6"
         >
           <div class="mb-5">
-            <h2 class="text-sm font-semibold text-white">
-              Account
-            </h2>
+            <div class="flex items-center gap-2">
+              <User
+                :size="17"
+                class="text-emerald-400"
+              />
+
+              <h2 class="text-sm font-semibold text-white">
+                Account
+              </h2>
+            </div>
 
             <p class="mt-1 text-xs text-slate-500">
               Manage your current welfare officer session.
@@ -859,9 +1077,10 @@ async function logout() {
 
           <button
             type="button"
-            class="rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-2 text-xs font-semibold text-red-300 transition hover:bg-red-500/10"
+            class="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-red-500/20 bg-red-500/5 px-4 py-2.5 text-xs font-semibold text-red-300 transition hover:bg-red-500/10 sm:w-auto"
             @click="logout"
           >
+            <LogOut :size="14" />
             Logout
           </button>
         </section>
@@ -870,4 +1089,3 @@ async function logout() {
     </main>
   </div>
 </template>
-

@@ -16,6 +16,8 @@ import {
   User,
   LogOut,
   Menu,
+  X as XIcon,
+  ArrowLeft,
   Search,
   Bell as BellIcon,
   Moon,
@@ -112,6 +114,24 @@ async function logout() {
   } finally {
     await navigateTo('/login')
   }
+}
+
+/* ---------------- Mobile sidebar drawer ---------------- */
+
+const sidebarOpen = ref(false)
+
+function toggleSidebar() {
+  sidebarOpen.value = !sidebarOpen.value
+}
+
+function closeSidebar() {
+  sidebarOpen.value = false
+}
+
+/* ---------------- Back to dashboard ---------------- */
+
+function backToDashboard() {
+  navigateTo('/welfare/dashboard')
 }
 
 const topSearchQuery = ref('')
@@ -401,10 +421,19 @@ const ICON_SIZE = 16
   <div
     class="flex min-h-screen bg-[#0b1220] text-slate-100"
   >
+    <!-- MOBILE OVERLAY -->
+
+    <div
+      v-if="sidebarOpen"
+      class="fixed inset-0 z-20 bg-black/60 md:hidden"
+      @click="closeSidebar"
+    ></div>
+
     <!-- SIDEBAR -->
 
     <aside
-      class="flex w-64 shrink-0 flex-col border-r border-white/5 bg-[#0d1526]"
+      class="fixed inset-y-0 left-0 z-30 flex w-64 shrink-0 flex-col border-r border-white/5 bg-[#0d1526] transition-transform duration-200 ease-in-out md:static md:translate-x-0"
+      :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full'"
     >
       <div
         class="flex items-center gap-3 px-5 py-5"
@@ -419,7 +448,7 @@ const ICON_SIZE = 16
           />
         </div>
 
-        <div>
+        <div class="min-w-0 flex-1">
           <p
             class="text-sm font-bold leading-tight text-white"
           >
@@ -432,9 +461,18 @@ const ICON_SIZE = 16
             Personnel Stress &amp; Welfare Monitoring
           </p>
         </div>
+
+        <button
+          type="button"
+          class="rounded-lg p-1.5 text-slate-400 hover:bg-white/5 md:hidden"
+          aria-label="Close menu"
+          @click="closeSidebar"
+        >
+          <XIcon :size="18" />
+        </button>
       </div>
 
-      <nav class="flex-1 space-y-1 px-3">
+      <nav class="flex-1 space-y-1 overflow-y-auto px-3">
         <NuxtLink
           v-for="item in navItems"
           :key="item.label"
@@ -445,6 +483,7 @@ const ICON_SIZE = 16
               ? 'bg-emerald-600 text-white shadow-sm'
               : 'text-slate-300 hover:bg-white/5'
           "
+          @click="closeSidebar"
         >
           <component
             :is="item.icon"
@@ -482,18 +521,34 @@ const ICON_SIZE = 16
       <!-- HEADER -->
 
       <header
-        class="flex items-center gap-4 border-b border-white/5 bg-[#0d1526] px-6 py-3.5"
+        class="flex items-center gap-2 border-b border-white/5 bg-[#0d1526] px-3 py-3 sm:gap-4 sm:px-6 sm:py-3.5"
       >
+        <!-- BACK TO DASHBOARD -->
+
         <button
           type="button"
-          class="rounded-lg p-2 text-slate-400 hover:bg-white/5"
+          class="flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-2 text-slate-300 hover:bg-white/5 hover:text-white"
+          aria-label="Back to dashboard"
+          @click="backToDashboard"
+        >
+          <ArrowLeft :size="18" :stroke-width="2" />
+          <span class="hidden text-sm font-semibold sm:inline">Back to Dashboard</span>
+          <span class="text-sm font-semibold sm:hidden">Back</span>
+        </button>
+
+        <!-- MOBILE MENU TOGGLE -->
+
+        <button
+          type="button"
+          class="shrink-0 rounded-lg p-2 text-slate-400 hover:bg-white/5 md:hidden"
           aria-label="Toggle menu"
+          @click="toggleSidebar"
         >
           <Menu :size="20" />
         </button>
 
         <form
-          class="relative max-w-md flex-1"
+          class="relative hidden max-w-md flex-1 sm:block"
           @submit.prevent="submitTopSearch"
         >
           <Search
@@ -510,11 +565,11 @@ const ICON_SIZE = 16
         </form>
 
         <div
-          class="ml-auto flex items-center gap-4"
+          class="ml-auto flex items-center gap-2 sm:gap-4"
         >
           <button
             type="button"
-            class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+            class="hidden rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200 sm:inline-flex"
             aria-label="Notifications"
           >
             <BellIcon
@@ -525,7 +580,7 @@ const ICON_SIZE = 16
 
           <button
             type="button"
-            class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+            class="hidden rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200 sm:inline-flex"
             aria-label="Toggle theme"
           >
             <Moon
@@ -537,13 +592,13 @@ const ICON_SIZE = 16
           <!-- PROFILE DROPDOWN -->
 
           <div
-            class="relative border-l border-white/10 pl-4"
+            class="relative border-l border-white/10 pl-2 sm:pl-4"
             data-dropdown-root
           >
             <button
               type="button"
               @click.stop="toggleProfile"
-              class="flex items-center gap-2.5"
+              class="flex items-center gap-2 sm:gap-2.5"
             >
               <div
                 class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-700"
@@ -564,7 +619,7 @@ const ICON_SIZE = 16
               </div>
 
               <div
-                class="text-left leading-tight"
+                class="hidden text-left leading-tight sm:block"
               >
                 <p
                   class="text-sm font-semibold text-white"
@@ -581,7 +636,7 @@ const ICON_SIZE = 16
 
               <ChevronDown
                 :size="14"
-                class="text-slate-500 transition-transform"
+                class="hidden text-slate-500 transition-transform sm:block"
                 :class="{
                   'rotate-180': profileOpen,
                 }"
@@ -610,14 +665,23 @@ const ICON_SIZE = 16
         </div>
       </header>
 
+      <!-- MOBILE-ONLY SEARCH ROW -->
+
+      <div class="border-b border-white/5 bg-[#0d1526] px-3 py-2 sm:hidden">
+        <form class="relative" @submit.prevent="submitTopSearch">
+          <Search :size="16" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input v-model="topSearchQuery" type="text" placeholder="Search personnel, unit, or ID..." class="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-4 text-sm text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50">
+        </form>
+      </div>
+
       <!-- CONTENT -->
 
       <main
-        class="flex-1 space-y-4 p-6"
+        class="flex-1 space-y-4 p-3 sm:p-6"
       >
         <div>
           <h1
-            class="text-xl font-extrabold tracking-tight text-white"
+            class="text-lg font-extrabold tracking-tight text-white sm:text-xl"
           >
             My Profile
           </h1>
@@ -633,7 +697,7 @@ const ICON_SIZE = 16
 
         <div
           v-if="loading"
-          class="flex items-center justify-center rounded-2xl border border-white/5 bg-[#0d1526] p-16"
+          class="flex items-center justify-center rounded-2xl border border-white/5 bg-[#0d1526] p-10 sm:p-16"
         >
           <div
             class="flex flex-col items-center gap-3 text-slate-400"
@@ -653,7 +717,7 @@ const ICON_SIZE = 16
 
         <div
           v-else-if="error"
-          class="flex flex-col items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-16 text-center"
+          class="flex flex-col items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center sm:p-16"
         >
           <AlertTriangle
             :size="28"
@@ -691,14 +755,14 @@ const ICON_SIZE = 16
 
         <div
           v-else-if="data"
-          class="max-w-2xl rounded-2xl border border-white/5 bg-[#0d1526] p-6"
+          class="max-w-2xl rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-6"
         >
           <!-- PROFILE HEADER -->
 
           <div
-            class="flex items-center gap-4"
+            class="flex flex-col items-center gap-4 text-center sm:flex-row sm:text-left"
           >
-            <div class="relative">
+            <div class="relative shrink-0">
 
               <!-- IMAGE -->
 
@@ -747,7 +811,7 @@ const ICON_SIZE = 16
               />
             </div>
 
-            <div>
+            <div class="min-w-0">
               <p
                 class="text-lg font-bold text-white"
               >
@@ -790,7 +854,7 @@ const ICON_SIZE = 16
 
           <div
             v-if="data.avatarUrl"
-            class="mt-3"
+            class="mt-3 text-center sm:text-left"
           >
             <button
               type="button"
@@ -826,7 +890,7 @@ const ICON_SIZE = 16
                   </p>
 
                   <p
-                    class="mt-0.5 text-sm font-medium text-slate-200"
+                    class="mt-0.5 break-words text-sm font-medium text-slate-200"
                   >
                     {{ data.email }}
                   </p>
@@ -900,7 +964,7 @@ const ICON_SIZE = 16
               <button
                 type="button"
                 @click="startEdit"
-                class="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
+                class="w-full rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 sm:w-auto"
               >
                 Edit Profile
               </button>
@@ -968,7 +1032,7 @@ const ICON_SIZE = 16
               </p>
 
               <div
-                class="flex items-center gap-2"
+                class="flex flex-col gap-2 sm:flex-row sm:items-center"
               >
                 <button
                   type="button"
@@ -998,3 +1062,18 @@ const ICON_SIZE = 16
     </div>
   </div>
 </template>
+
+<style>
+/* Fixes the white flash that shows above/below the page on mobile
+   overscroll ("rubber-band") bounce when scrolling past the top/bottom. */
+html,
+body {
+  background-color: #0b1220;
+  height: 100%;
+}
+
+#__nuxt {
+  background-color: #0b1220;
+  min-height: 100%;
+}
+</style>
