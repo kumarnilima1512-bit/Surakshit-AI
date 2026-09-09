@@ -240,7 +240,7 @@ const navSections = [
 ========================================================= */
 
 const routeMap: Record<string, string> = {
-  'Dashboard': '/admin/dashboard',
+  Dashboard: '/admin/dashboard',
 
   // Users
   'All Users': '/admin/users/all-users',
@@ -254,7 +254,7 @@ const routeMap: Record<string, string> = {
   // Analytics
   'System Analytics': '/admin/analytics/system-analytics',
   'Risk Trends': '/admin/analytics/risk-trends',
-  'Reports': '/admin/analytics/reports',
+  Reports: '/admin/analytics/reports',
 
   // Security
   'Audit Logs': '/admin/security/audit-logs',
@@ -272,7 +272,7 @@ const routeMap: Record<string, string> = {
 ========================================================= */
 
 const profileActionRouteMap: Record<string, string> = {
-  'Profile': '/admin/profile',
+  Profile: '/admin/profile',
   'Account Settings': '/admin/account-settings',
 }
 
@@ -358,18 +358,46 @@ function toggleProfileMenu() {
   showNotifications.value = false
 }
 
-function handleProfileAction(action: string) {
+/* =========================================================
+   LOGOUT
+========================================================= */
+
+async function handleProfileAction(action: string) {
   closeDropdowns()
 
   if (action === 'Logout') {
-    showToast('Logged out successfully')
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      })
+
+      if (!response.ok) {
+        throw new Error(
+          `Logout request failed with status ${response.status}`,
+        )
+      }
+
+      showToast('Logged out successfully')
+
+      // Give the toast a short moment to appear.
+      await new Promise((resolve) => setTimeout(resolve, 500))
+
+      // Redirect to login page after successful logout.
+      await router.push('/login')
+    } catch (error) {
+      console.error('Logout error:', error)
+
+      showToast('Failed to logout')
+    }
+
     return
   }
 
   const path = profileActionRouteMap[action]
 
   if (path) {
-    router.push(path)
+    await router.push(path)
   } else {
     showToast(`No route found for "${action}"`)
   }
@@ -666,10 +694,10 @@ onUnmounted(() => {
           class="flex min-h-[72px] items-center gap-3 border-b border-white/5 px-5"
         >
           <img
-  src="/logos/surakshit-ai.png"
-  alt="Surakshit AI"
-  class="h-16 w-16 object-contain"
-/>
+            src="/logos/surakshit-ai.png"
+            alt="Surakshit AI"
+            class="h-16 w-16 object-contain"
+          />
 
           <div class="min-w-0 flex-1">
             <p class="text-sm font-bold leading-tight text-white">
