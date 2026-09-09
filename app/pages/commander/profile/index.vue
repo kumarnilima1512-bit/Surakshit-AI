@@ -1,5 +1,12 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import {
+  ref,
+  reactive,
+  onMounted,
+  onUnmounted,
+  watch,
+} from 'vue'
+
 import {
   Home,
   Users,
@@ -17,6 +24,7 @@ import {
   Camera,
   RotateCw,
   X,
+  ArrowLeft,
   type LucideIcon,
 } from 'lucide-vue-next'
 
@@ -57,6 +65,16 @@ const {
 
 const route = useRoute()
 
+const sidebarOpen = ref(false)
+
+function closeSidebar() {
+  sidebarOpen.value = false
+}
+
+function goBack() {
+  navigateTo('/commander/dashboard')
+}
+
 interface NavItem {
   label: string
   to: string
@@ -64,23 +82,59 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { label: 'Dashboard', to: '/commander/dashboard', icon: Home },
-  { label: 'My Personnel', to: '/commander/personnel', icon: Users },
-  { label: 'Risk Alerts', to: '/commander/alerts', icon: AlertTriangle },
-  { label: 'Follow-ups', to: '/commander/follow-ups', icon: ClipboardList },
-  { label: 'Unit Reports', to: '/commander/reports', icon: FileText },
-  { label: 'My Profile', to: '/commander/profile', icon: User },
-  { label: 'Security', to: '/commander/security', icon: ShieldCheck },
+  {
+    label: 'Dashboard',
+    to: '/commander/dashboard',
+    icon: Home,
+  },
+  {
+    label: 'My Personnel',
+    to: '/commander/personnel',
+    icon: Users,
+  },
+  {
+    label: 'Risk Alerts',
+    to: '/commander/alerts',
+    icon: AlertTriangle,
+  },
+  {
+    label: 'Follow-ups',
+    to: '/commander/follow-ups',
+    icon: ClipboardList,
+  },
+  {
+    label: 'Unit Reports',
+    to: '/commander/reports',
+    icon: FileText,
+  },
+  {
+    label: 'My Profile',
+    to: '/commander/profile',
+    icon: User,
+  },
+  {
+    label: 'Security',
+    to: '/commander/security',
+    icon: ShieldCheck,
+  },
 ]
 
 function isActive(to: string) {
-  return route.path === to || route.path.startsWith(`${to}/`)
+  return (
+    route.path === to ||
+    route.path.startsWith(`${to}/`)
+  )
 }
 
 async function logout() {
-  await useFetch('/api/auth/logout', { method: 'POST' })
+  await useFetch('/api/auth/logout', {
+    method: 'POST',
+  })
+
   await navigateTo('/login')
 }
+
+/* ---------------- Top search ---------------- */
 
 const topSearchQuery = ref('')
 
@@ -94,6 +148,8 @@ function submitTopSearch() {
     query: { q },
   })
 }
+
+/* ---------------- Profile dropdown ---------------- */
 
 const profileOpen = ref(false)
 
@@ -110,23 +166,42 @@ async function handleProfileAction(
     return logout()
   }
 
-  await navigateTo(`/commander/${action.toLowerCase()}`)
+  await navigateTo(
+    `/commander/${action.toLowerCase()}`,
+  )
 }
 
 function handleOutsideClick(event: MouseEvent) {
   const target = event.target as HTMLElement
 
-  if (!target.closest('[data-dropdown-root]')) {
+  if (
+    !target.closest('[data-dropdown-root]')
+  ) {
     profileOpen.value = false
   }
 }
 
+/* Close mobile sidebar whenever route changes */
+watch(
+  () => route.path,
+  () => {
+    sidebarOpen.value = false
+    profileOpen.value = false
+  },
+)
+
 onMounted(() => {
-  window.addEventListener('click', handleOutsideClick)
+  window.addEventListener(
+    'click',
+    handleOutsideClick,
+  )
 })
 
 onUnmounted(() => {
-  window.removeEventListener('click', handleOutsideClick)
+  window.removeEventListener(
+    'click',
+    handleOutsideClick,
+  )
 })
 
 /* ---------------- Edit form ---------------- */
@@ -144,7 +219,9 @@ const saved = ref(false)
 
 /* ---------------- Profile picture ---------------- */
 
-const fileInput = ref<HTMLInputElement | null>(null)
+const fileInput =
+  ref<HTMLInputElement | null>(null)
+
 const uploadingPhoto = ref(false)
 const photoError = ref<string | null>(null)
 const photoSuccess = ref(false)
@@ -152,11 +229,14 @@ const photoSuccess = ref(false)
 function openPhotoPicker() {
   photoError.value = null
   photoSuccess.value = false
+
   fileInput.value?.click()
 }
 
 function handlePhotoSelected(event: Event) {
-  const input = event.target as HTMLInputElement
+  const input =
+    event.target as HTMLInputElement
+
   const file = input.files?.[0]
 
   if (!file) return
@@ -171,16 +251,22 @@ function handlePhotoSelected(event: Event) {
   ]
 
   if (!allowedTypes.includes(file.type)) {
-    photoError.value = 'Please select a JPEG, PNG, or WebP image.'
+    photoError.value =
+      'Please select a JPEG, PNG, or WebP image.'
+
     input.value = ''
+
     return
   }
 
   const maxSize = 2 * 1024 * 1024
 
   if (file.size > maxSize) {
-    photoError.value = 'Image size must be 2MB or less.'
+    photoError.value =
+      'Image size must be 2MB or less.'
+
     input.value = ''
+
     return
   }
 
@@ -190,38 +276,47 @@ function handlePhotoSelected(event: Event) {
     const result = reader.result
 
     if (typeof result !== 'string') {
-      photoError.value = 'Could not read the selected image.'
+      photoError.value =
+        'Could not read the selected image.'
+
       input.value = ''
+
       return
     }
 
     await uploadProfilePhoto(result)
+
     input.value = ''
   }
 
   reader.onerror = () => {
-    photoError.value = 'Could not read the selected image.'
+    photoError.value =
+      'Could not read the selected image.'
+
     input.value = ''
   }
 
   reader.readAsDataURL(file)
 }
 
-async function uploadProfilePhoto(imageData: string) {
+async function uploadProfilePhoto(
+  imageData: string,
+) {
   uploadingPhoto.value = true
   photoError.value = null
   photoSuccess.value = false
 
   try {
-    const updated = await $fetch<ProfileData>(
-      '/api/commander/profile',
-      {
-        method: 'PUT',
-        body: {
-          profilePicture: imageData,
+    const updated =
+      await $fetch<ProfileData>(
+        '/api/commander/profile',
+        {
+          method: 'PUT',
+          body: {
+            profilePicture: imageData,
+          },
         },
-      },
-    )
+      )
 
     if (data.value) {
       data.value = updated
@@ -245,15 +340,16 @@ async function removeProfilePhoto() {
   photoSuccess.value = false
 
   try {
-    const updated = await $fetch<ProfileData>(
-      '/api/commander/profile',
-      {
-        method: 'PUT',
-        body: {
-          profilePicture: null,
+    const updated =
+      await $fetch<ProfileData>(
+        '/api/commander/profile',
+        {
+          method: 'PUT',
+          body: {
+            profilePicture: null,
+          },
         },
-      },
-    )
+      )
 
     if (data.value) {
       data.value = updated
@@ -296,27 +392,31 @@ async function saveProfile() {
 
   const name = form.name.trim()
   const phone = form.phone.trim()
-  const email = form.email.trim().toLowerCase()
+  const email =
+    form.email.trim().toLowerCase()
 
   if (!name || !email) {
-    saveError.value = 'Name and email are required.'
+    saveError.value =
+      'Name and email are required.'
+
     return
   }
 
   saving.value = true
 
   try {
-    const updated = await $fetch<ProfileData>(
-      '/api/commander/profile',
-      {
-        method: 'PUT',
-        body: {
-          name,
-          phone,
-          email,
+    const updated =
+      await $fetch<ProfileData>(
+        '/api/commander/profile',
+        {
+          method: 'PUT',
+          body: {
+            name,
+            phone,
+            email,
+          },
         },
-      },
-    )
+      )
 
     data.value = updated
 
@@ -339,15 +439,21 @@ const ICON_SIZE = 16
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-[#0b1220] text-slate-100">
+  <div
+    class="relative flex min-h-screen overflow-x-hidden bg-[#0b1220] text-slate-100"
+  >
 
-    <!-- Sidebar -->
+    <!-- ================================================================
+         Desktop Sidebar
+         ================================================================ -->
+
     <aside
-      class="flex w-64 shrink-0 flex-col border-r border-white/5 bg-[#0d1526]"
+      class="hidden w-64 shrink-0 flex-col border-r border-white/5 bg-[#0d1526] lg:flex"
     >
+      <!-- Logo -->
       <div class="flex items-center gap-3 px-5 py-5">
         <div
-          class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400"
+          class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400"
         >
           <img
             src="/logos/surakshit-ai.png"
@@ -356,17 +462,22 @@ const ICON_SIZE = 16
           />
         </div>
 
-        <div>
-          <p class="text-sm font-bold leading-tight text-white">
+        <div class="min-w-0">
+          <p
+            class="text-sm font-bold leading-tight text-white"
+          >
             Surakshit AI
           </p>
 
-          <p class="text-[10px] leading-tight text-slate-400">
+          <p
+            class="text-[10px] leading-tight text-slate-400"
+          >
             Personnel Stress &amp; Welfare Monitoring
           </p>
         </div>
       </div>
 
+      <!-- Navigation -->
       <nav class="flex-1 space-y-1 px-3">
         <NuxtLink
           v-for="item in navItems"
@@ -389,35 +500,165 @@ const ICON_SIZE = 16
         </NuxtLink>
       </nav>
 
-      <div class="border-t border-white/5 px-3 py-3">
+      <!-- Logout -->
+      <div
+        class="border-t border-white/5 px-3 py-3"
+      >
         <button
           type="button"
           @click="logout"
           class="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-xs font-medium text-slate-400 hover:bg-white/5 hover:text-slate-200"
         >
-          <LogOut :size="14" :stroke-width="1.5" />
+          <LogOut
+            :size="14"
+            :stroke-width="1.5"
+          />
+
           Logout
         </button>
       </div>
     </aside>
 
-    <!-- Main -->
-    <div class="flex min-h-screen flex-1 flex-col">
+    <!-- ================================================================
+         Mobile Sidebar Overlay
+         ================================================================ -->
 
-      <!-- Header -->
-      <header
-        class="flex items-center gap-4 border-b border-white/5 bg-[#0d1526] px-6 py-3.5"
+    <Transition name="fade">
+      <div
+        v-if="sidebarOpen"
+        class="fixed inset-0 z-40 bg-black/60 lg:hidden"
+        @click="closeSidebar"
+      />
+    </Transition>
+
+    <!-- ================================================================
+         Mobile Sidebar Drawer
+         ================================================================ -->
+
+    <Transition name="slide">
+      <aside
+        v-if="sidebarOpen"
+        class="fixed inset-y-0 left-0 z-50 flex w-[min(82vw,18rem)] flex-col border-r border-white/5 bg-[#0d1526] shadow-2xl lg:hidden"
       >
+        <!-- Mobile Logo -->
+        <div
+          class="flex items-center justify-between border-b border-white/5 px-4 py-4"
+        >
+          <div
+            class="flex min-w-0 items-center gap-3"
+          >
+            <div
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15"
+            >
+              <img
+                src="/logos/surakshit-ai.png"
+                alt="Surakshit AI"
+                class="h-10 w-10 object-contain"
+              />
+            </div>
+
+            <div class="min-w-0">
+              <p
+                class="text-sm font-bold leading-tight text-white"
+              >
+                Surakshit AI
+              </p>
+
+              <p
+                class="text-[10px] leading-tight text-slate-400"
+              >
+                Personnel Stress &amp; Welfare Monitoring
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            @click="closeSidebar"
+            class="ml-2 shrink-0 rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+            aria-label="Close menu"
+          >
+            <X :size="18" />
+          </button>
+        </div>
+
+        <!-- Mobile Navigation -->
+        <nav
+          class="flex-1 space-y-1 overflow-y-auto px-3 py-4"
+        >
+          <NuxtLink
+            v-for="item in navItems"
+            :key="item.label"
+            :to="item.to"
+            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors"
+            :class="
+              isActive(item.to)
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-300 hover:bg-white/5'
+            "
+          >
+            <component
+              :is="item.icon"
+              :size="ICON_SIZE"
+              :stroke-width="1.5"
+            />
+
+            {{ item.label }}
+          </NuxtLink>
+        </nav>
+
+        <!-- Mobile Logout -->
+        <div
+          class="border-t border-white/5 px-3 py-3"
+        >
+          <button
+            type="button"
+            @click="logout"
+            class="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-xs font-medium text-slate-400 hover:bg-white/5 hover:text-slate-200"
+          >
+            <LogOut
+              :size="14"
+              :stroke-width="1.5"
+            />
+
+            Logout
+          </button>
+        </div>
+      </aside>
+    </Transition>
+
+    <!-- ================================================================
+         Main Area
+         ================================================================ -->
+
+    <div
+      class="flex min-h-screen min-w-0 flex-1 flex-col"
+    >
+
+      <!-- ==============================================================
+           Header
+           ============================================================== -->
+
+      <header
+        class="flex min-w-0 items-center gap-2 border-b border-white/5 bg-[#0d1526] px-3 py-3.5 sm:gap-4 sm:px-6"
+      >
+
+        <!-- Mobile Menu -->
         <button
           type="button"
-          class="rounded-lg p-2 text-slate-400 hover:bg-white/5"
+          @click="sidebarOpen = true"
+          class="shrink-0 rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200 lg:hidden"
           aria-label="Toggle menu"
         >
           <Menu :size="20" />
         </button>
 
+        <!-- Desktop menu placeholder -->
+        <div class="hidden lg:block lg:w-0" />
+
+        <!-- Search -->
         <form
-          class="relative max-w-md flex-1"
+          class="relative min-w-0 max-w-md flex-1"
           @submit.prevent="submitTopSearch"
         >
           <Search
@@ -429,12 +670,16 @@ const ICON_SIZE = 16
             v-model="topSearchQuery"
             type="text"
             placeholder="Search personnel, unit, or ID..."
-            class="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-4 text-sm text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50"
+            class="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-3 text-sm text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50 sm:pr-4"
           />
         </form>
 
-        <div class="ml-auto flex items-center gap-4">
+        <!-- Header Right -->
+        <div
+          class="ml-auto flex shrink-0 items-center gap-1 sm:gap-3 lg:gap-4"
+        >
 
+          <!-- Notifications -->
           <button
             type="button"
             class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
@@ -446,9 +691,10 @@ const ICON_SIZE = 16
             />
           </button>
 
+          <!-- Theme -->
           <button
             type="button"
-            class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+            class="hidden rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200 sm:block"
             aria-label="Toggle theme"
           >
             <Moon
@@ -457,17 +703,18 @@ const ICON_SIZE = 16
             />
           </button>
 
+          <!-- Profile -->
           <div
-            class="relative border-l border-white/10 pl-4"
+            class="relative border-l border-white/10 pl-2 sm:pl-3 lg:pl-4"
             data-dropdown-root
           >
             <button
               type="button"
               @click.stop="toggleProfile"
-              class="flex items-center gap-2.5"
+              class="flex items-center gap-2"
             >
               <div
-                class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-700"
+                class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-700"
               >
                 <img
                   v-if="data?.avatarUrl"
@@ -484,29 +731,42 @@ const ICON_SIZE = 16
                 />
               </div>
 
-              <div class="text-left leading-tight">
-                <p class="text-sm font-semibold text-white">
+              <div
+                class="hidden text-left leading-tight md:block"
+              >
+                <p
+                  class="max-w-[150px] truncate text-sm font-semibold text-white"
+                >
                   {{ data?.rank }} {{ data?.name }}
                 </p>
 
-                <p class="text-[11px] text-slate-400">
+                <p
+                  class="text-[11px] text-slate-400"
+                >
                   Commander
                 </p>
               </div>
 
               <ChevronDown
                 :size="14"
-                class="text-slate-500 transition-transform"
-                :class="{ 'rotate-180': profileOpen }"
+                class="hidden text-slate-500 transition-transform sm:block"
+                :class="{
+                  'rotate-180': profileOpen,
+                }"
               />
             </button>
 
+            <!-- Profile Dropdown -->
             <div
               v-if="profileOpen"
-              class="absolute right-0 z-20 mt-2 w-44 rounded-xl border border-white/10 bg-[#111a2e] p-1.5 shadow-xl"
+              class="absolute right-0 z-30 mt-2 w-44 max-w-[calc(100vw-1.5rem)] rounded-xl border border-white/10 bg-[#111a2e] p-1.5 shadow-xl"
             >
               <button
-                v-for="action in (['Profile', 'Security', 'Logout'] as const)"
+                v-for="action in ([
+                  'Profile',
+                  'Security',
+                  'Logout',
+                ] as const)"
                 :key="action"
                 type="button"
                 @click="handleProfileAction(action)"
@@ -519,25 +779,51 @@ const ICON_SIZE = 16
         </div>
       </header>
 
-      <!-- Content -->
-      <main class="flex-1 space-y-4 p-6">
+      <!-- ==============================================================
+           Content
+           ============================================================== -->
 
-        <div>
-          <h1 class="text-xl font-extrabold tracking-tight text-white">
-            My Profile
-          </h1>
+      <main
+        class="min-w-0 flex-1 space-y-4 p-4 sm:p-6"
+      >
 
-          <p class="mt-0.5 text-xs text-slate-400">
-            Your command and contact details
-          </p>
+        <!-- Page Heading -->
+        <div
+          class="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
+          <div class="min-w-0">
+            <!-- Back -->
+            <button
+              type="button"
+              @click="goBack"
+              class="mb-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+            >
+              <ArrowLeft :size="14" />
+              Back
+            </button>
+
+            <h1
+              class="text-xl font-extrabold tracking-tight text-white"
+            >
+              My Profile
+            </h1>
+
+            <p
+              class="mt-0.5 text-xs text-slate-400"
+            >
+              Your command and contact details
+            </p>
+          </div>
         </div>
 
         <!-- Loading -->
         <div
           v-if="loading"
-          class="flex items-center justify-center rounded-2xl border border-white/5 bg-[#0d1526] p-16"
+          class="flex items-center justify-center rounded-2xl border border-white/5 bg-[#0d1526] p-10 sm:p-16"
         >
-          <div class="flex flex-col items-center gap-3 text-slate-400">
+          <div
+            class="flex flex-col items-center gap-3 text-slate-400"
+          >
             <RotateCw
               :size="22"
               class="animate-spin"
@@ -552,7 +838,7 @@ const ICON_SIZE = 16
         <!-- Error -->
         <div
           v-else-if="error"
-          class="flex flex-col items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-16 text-center"
+          class="flex flex-col items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center sm:p-16"
         >
           <AlertTriangle
             :size="28"
@@ -560,13 +846,19 @@ const ICON_SIZE = 16
             :stroke-width="1.5"
           />
 
-          <p class="text-sm font-semibold text-red-300">
+          <p
+            class="text-sm font-semibold text-red-300"
+          >
             Couldn't load your profile
           </p>
 
-          <p class="text-xs text-slate-400">
+          <p
+            class="max-w-xl text-xs leading-relaxed text-slate-400"
+          >
             {{ error.message }} — expected data from
-            <code class="rounded bg-white/5 px-1.5 py-0.5">
+            <code
+              class="rounded bg-white/5 px-1.5 py-0.5"
+            >
               /api/commander/profile
             </code>
           </p>
@@ -583,13 +875,18 @@ const ICON_SIZE = 16
         <!-- Profile -->
         <div
           v-else-if="data"
-          class="max-w-2xl rounded-2xl border border-white/5 bg-[#0d1526] p-6"
+          class="w-full max-w-2xl rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-6"
         >
 
-          <!-- Profile header -->
-          <div class="flex items-center gap-4">
+          <!-- Profile Header -->
+          <div
+            class="flex flex-col items-start gap-4 sm:flex-row sm:items-center"
+          >
 
-            <div class="relative">
+            <!-- Avatar -->
+            <div
+              class="relative shrink-0"
+            >
 
               <div
                 class="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full bg-slate-700"
@@ -609,7 +906,7 @@ const ICON_SIZE = 16
                 />
               </div>
 
-              <!-- Hidden file input -->
+              <!-- Hidden File Input -->
               <input
                 ref="fileInput"
                 type="file"
@@ -641,7 +938,10 @@ const ICON_SIZE = 16
 
               <!-- Remove -->
               <button
-                v-if="data.avatarUrl && !uploadingPhoto"
+                v-if="
+                  data.avatarUrl &&
+                  !uploadingPhoto
+                "
                 type="button"
                 @click="removeProfilePhoto"
                 class="absolute -right-1 -top-1 flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-red-500/80 text-white hover:bg-red-500"
@@ -649,28 +949,37 @@ const ICON_SIZE = 16
               >
                 <X :size="12" />
               </button>
-
             </div>
 
-            <div>
-              <p class="text-lg font-bold text-white">
+            <!-- Identity -->
+            <div class="min-w-0">
+              <p
+                class="break-words text-lg font-bold text-white"
+              >
                 {{ data.rank }} {{ data.name }}
               </p>
 
-              <p class="text-xs text-slate-400">
-                {{ data.unitName }} &middot; {{ data.unitCode }}
+              <p
+                class="mt-1 break-words text-xs text-slate-400"
+              >
+                {{ data.unitName }}
+                &middot;
+                {{ data.unitCode }}
               </p>
 
-              <p class="mt-0.5 text-xs text-slate-500">
-                Service ID: {{ data.serviceId }}
+              <p
+                class="mt-0.5 break-words text-xs text-slate-500"
+              >
+                Service ID:
+                {{ data.serviceId }}
               </p>
             </div>
           </div>
 
-          <!-- Photo status -->
+          <!-- Photo Status -->
           <p
             v-if="photoError"
-            class="mt-3 text-xs text-red-400"
+            class="mt-3 break-words text-xs text-red-400"
           >
             {{ photoError }}
           </p>
@@ -682,58 +991,88 @@ const ICON_SIZE = 16
             Profile picture updated successfully.
           </p>
 
-          <!-- Profile details -->
-          <div class="mt-6 border-t border-white/5 pt-5">
+          <!-- Profile Details -->
+          <div
+            class="mt-6 border-t border-white/5 pt-5"
+          >
 
-            <!-- View mode -->
+            <!-- View Mode -->
             <div
               v-if="!editing"
               class="space-y-4"
             >
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
-                <div>
-                  <p class="text-[11px] text-slate-500">
+              <div
+                class="grid grid-cols-1 gap-4 sm:grid-cols-2"
+              >
+
+                <!-- Email -->
+                <div class="min-w-0">
+                  <p
+                    class="text-[11px] text-slate-500"
+                  >
                     Email
                   </p>
 
-                  <p class="mt-0.5 text-sm font-medium text-slate-200">
+                  <p
+                    class="mt-0.5 break-all text-sm font-medium text-slate-200"
+                  >
                     {{ data.email }}
                   </p>
                 </div>
 
-                <div>
-                  <p class="text-[11px] text-slate-500">
+                <!-- Phone -->
+                <div class="min-w-0">
+                  <p
+                    class="text-[11px] text-slate-500"
+                  >
                     Phone
                   </p>
 
-                  <p class="mt-0.5 text-sm font-medium text-slate-200">
-                    {{ data.phone || 'Not provided' }}
+                  <p
+                    class="mt-0.5 break-words text-sm font-medium text-slate-200"
+                  >
+                    {{
+                      data.phone ||
+                      'Not provided'
+                    }}
                   </p>
                 </div>
 
-                <div>
-                  <p class="text-[11px] text-slate-500">
+                <!-- Joined -->
+                <div class="min-w-0">
+                  <p
+                    class="text-[11px] text-slate-500"
+                  >
                     Joined
                   </p>
 
-                  <p class="mt-0.5 text-sm font-medium text-slate-200">
+                  <p
+                    class="mt-0.5 text-sm font-medium text-slate-200"
+                  >
                     {{ data.joinedDate }}
                   </p>
                 </div>
 
-                <div>
-                  <p class="text-[11px] text-slate-500">
+                <!-- Unit -->
+                <div class="min-w-0">
+                  <p
+                    class="text-[11px] text-slate-500"
+                  >
                     Unit
                   </p>
 
-                  <p class="mt-0.5 text-sm font-medium text-slate-200">
-                    {{ data.unitName }} ({{ data.unitCode }})
+                  <p
+                    class="mt-0.5 break-words text-sm font-medium text-slate-200"
+                  >
+                    {{ data.unitName }}
+                    ({{ data.unitCode }})
                   </p>
                 </div>
 
               </div>
 
+              <!-- Saved -->
               <p
                 v-if="saved"
                 class="text-xs font-medium text-emerald-400"
@@ -741,24 +1080,31 @@ const ICON_SIZE = 16
                 Profile updated.
               </p>
 
+              <!-- Edit Button -->
               <button
                 type="button"
                 @click="startEdit"
-                class="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
+                class="w-full rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 sm:w-auto"
               >
                 Edit Profile
               </button>
             </div>
 
-            <!-- Edit mode -->
+            <!-- Edit Mode -->
             <div
               v-else
               class="space-y-4"
             >
-              <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
 
+              <div
+                class="grid grid-cols-1 gap-4 sm:grid-cols-2"
+              >
+
+                <!-- Name -->
                 <div>
-                  <label class="text-[11px] text-slate-500">
+                  <label
+                    class="text-[11px] text-slate-500"
+                  >
                     Full Name
                   </label>
 
@@ -769,8 +1115,11 @@ const ICON_SIZE = 16
                   />
                 </div>
 
+                <!-- Phone -->
                 <div>
-                  <label class="text-[11px] text-slate-500">
+                  <label
+                    class="text-[11px] text-slate-500"
+                  >
                     Phone
                   </label>
 
@@ -784,8 +1133,13 @@ const ICON_SIZE = 16
                   />
                 </div>
 
-                <div class="sm:col-span-2">
-                  <label class="text-[11px] text-slate-500">
+                <!-- Email -->
+                <div
+                  class="sm:col-span-2"
+                >
+                  <label
+                    class="text-[11px] text-slate-500"
+                  >
                     Email
                   </label>
 
@@ -799,6 +1153,7 @@ const ICON_SIZE = 16
 
               </div>
 
+              <!-- Save Error -->
               <p
                 v-if="saveError"
                 class="text-xs text-red-400"
@@ -806,32 +1161,60 @@ const ICON_SIZE = 16
                 {{ saveError }}
               </p>
 
-              <div class="flex items-center gap-2">
+              <!-- Actions -->
+              <div
+                class="flex flex-col gap-2 sm:flex-row sm:items-center"
+              >
 
                 <button
                   type="button"
                   :disabled="saving"
                   @click="saveProfile"
-                  class="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                  class="w-full rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50 sm:w-auto"
                 >
-                  {{ saving ? 'Saving…' : 'Save Changes' }}
+                  {{
+                    saving
+                      ? 'Saving…'
+                      : 'Save Changes'
+                  }}
                 </button>
 
                 <button
                   type="button"
                   :disabled="saving"
                   @click="cancelEdit"
-                  class="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-50"
+                  class="w-full rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-xs font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-50 sm:w-auto"
                 >
                   Cancel
                 </button>
 
               </div>
             </div>
-
           </div>
         </div>
       </main>
     </div>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.25s ease;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  transform: translateX(-100%);
+}
+</style>

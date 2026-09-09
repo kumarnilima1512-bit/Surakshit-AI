@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import {
   Home,
   Users,
@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   LogOut,
   Menu,
+  X,
   Search,
   Bell as BellIcon,
   Moon,
@@ -21,6 +22,7 @@ import {
   RotateCw,
   Eye,
   EyeOff,
+  ArrowLeft,
   type LucideIcon,
 } from 'lucide-vue-next'
 
@@ -84,6 +86,24 @@ const navItems: NavItem[] = [
 function isActive(to: string) {
   return route.path === to || route.path.startsWith(`${to}/`)
 }
+
+const sidebarOpen = ref(false)
+
+function closeSidebar() {
+  sidebarOpen.value = false
+}
+
+function goBack() {
+  navigateTo('/commander/dashboard')
+}
+
+watch(
+  () => route.path,
+  () => {
+    sidebarOpen.value = false
+    profileOpen.value = false
+  },
+)
 
 async function logout() {
   await useFetch('/api/auth/logout', { method: 'POST' })
@@ -293,11 +313,12 @@ const ICON_SIZE = 16
 </script>
 
 <template>
-  <div class="flex min-h-screen bg-[#0b1220] text-slate-100">
-
-    <!-- Sidebar -->
+  <div
+    class="relative flex min-h-screen overflow-x-hidden bg-[#0b1220] text-slate-100"
+  >
+    <!-- Desktop Sidebar -->
     <aside
-      class="flex w-64 shrink-0 flex-col border-r border-white/5 bg-[#0d1526]"
+      class="hidden w-64 shrink-0 flex-col border-r border-white/5 bg-[#0d1526] lg:flex"
     >
       <div class="flex items-center gap-3 px-5 py-5">
         <div
@@ -310,7 +331,7 @@ const ICON_SIZE = 16
           />
         </div>
 
-        <div>
+        <div class="min-w-0">
           <p class="text-sm font-bold leading-tight text-white">
             Surakshit AI
           </p>
@@ -355,23 +376,111 @@ const ICON_SIZE = 16
       </div>
     </aside>
 
-    <!-- Main -->
-    <div class="flex min-h-screen flex-1 flex-col">
+    <!-- Mobile Overlay -->
+    <Transition name="fade">
+      <div
+        v-if="sidebarOpen"
+        class="fixed inset-0 z-40 bg-black/60 backdrop-blur-[1px] lg:hidden"
+        @click="closeSidebar"
+      />
+    </Transition>
 
+    <!-- Mobile Sidebar -->
+    <Transition name="slide">
+      <aside
+        v-if="sidebarOpen"
+        class="fixed inset-y-0 left-0 z-50 flex w-[min(82vw,18rem)] flex-col border-r border-white/5 bg-[#0d1526] shadow-2xl lg:hidden"
+      >
+        <div
+          class="flex items-center justify-between border-b border-white/5 px-4 py-4"
+        >
+          <div class="flex min-w-0 items-center gap-3">
+            <div
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15"
+            >
+              <img
+                src="/logos/surakshit-ai.png"
+                alt="Surakshit AI"
+                class="h-10 w-10 object-contain"
+              />
+            </div>
+
+            <div class="min-w-0">
+              <p class="text-sm font-bold leading-tight text-white">
+                Surakshit AI
+              </p>
+
+              <p class="text-[9px] leading-tight text-slate-400">
+                Personnel Stress &amp; Welfare Monitoring
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            @click="closeSidebar"
+            class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+            aria-label="Close menu"
+          >
+            <X :size="19" />
+          </button>
+        </div>
+
+        <nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+          <NuxtLink
+            v-for="item in navItems"
+            :key="item.label"
+            :to="item.to"
+            @click="closeSidebar"
+            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors"
+            :class="
+              isActive(item.to)
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-300 hover:bg-white/5'
+            "
+          >
+            <component
+              :is="item.icon"
+              :size="ICON_SIZE"
+              :stroke-width="1.5"
+            />
+
+            {{ item.label }}
+          </NuxtLink>
+        </nav>
+
+        <div class="border-t border-white/5 px-3 py-3">
+          <button
+            type="button"
+            @click="logout"
+            class="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-xs font-medium text-slate-400 hover:bg-white/5 hover:text-slate-200"
+          >
+            <LogOut :size="14" :stroke-width="1.5" />
+            Logout
+          </button>
+        </div>
+      </aside>
+    </Transition>
+
+    <!-- Main -->
+    <div class="flex min-h-screen min-w-0 flex-1 flex-col">
       <!-- Header -->
       <header
-        class="flex items-center gap-4 border-b border-white/5 bg-[#0d1526] px-6 py-3.5"
+        class="flex min-w-0 items-center gap-2 border-b border-white/5 bg-[#0d1526] px-3 py-3.5 sm:gap-4 sm:px-6"
       >
+        <!-- Mobile Menu -->
         <button
           type="button"
-          class="rounded-lg p-2 text-slate-400 hover:bg-white/5"
-          aria-label="Toggle menu"
+          @click="sidebarOpen = true"
+          class="shrink-0 rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white lg:hidden"
+          aria-label="Open menu"
         >
           <Menu :size="20" />
         </button>
 
+        <!-- Search -->
         <form
-          class="relative max-w-md flex-1"
+          class="relative min-w-0 max-w-md flex-1"
           @submit.prevent="submitTopSearch"
         >
           <Search
@@ -383,26 +492,27 @@ const ICON_SIZE = 16
             v-model="topSearchQuery"
             type="text"
             placeholder="Search personnel, unit, or ID..."
-            class="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-4 text-sm text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50"
+            class="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-3 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50 sm:pr-4 sm:text-sm"
           />
         </form>
 
-        <div class="ml-auto flex items-center gap-4">
-
+        <div class="ml-auto flex shrink-0 items-center gap-1 sm:gap-3">
+          <!-- Notifications -->
           <button
             type="button"
             class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
             aria-label="Notifications"
           >
             <BellIcon
-              :size="20"
+              :size="19"
               :stroke-width="1.5"
             />
           </button>
 
+          <!-- Theme -->
           <button
             type="button"
-            class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+            class="hidden rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200 sm:block"
             aria-label="Toggle theme"
           >
             <Moon
@@ -411,17 +521,18 @@ const ICON_SIZE = 16
             />
           </button>
 
+          <!-- Profile -->
           <div
-            class="relative border-l border-white/10 pl-4"
+            class="relative border-l border-white/10 pl-2 sm:pl-4"
             data-dropdown-root
           >
             <button
               type="button"
               @click.stop="toggleProfile"
-              class="flex items-center gap-2.5"
+              class="flex items-center gap-2"
             >
               <div
-                class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-700"
+                class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-700"
               >
                 <img
                   v-if="data?.commander.avatarUrl"
@@ -438,7 +549,7 @@ const ICON_SIZE = 16
                 />
               </div>
 
-              <div class="text-left leading-tight">
+              <div class="hidden text-left leading-tight md:block">
                 <p class="text-sm font-semibold text-white">
                   {{ data?.commander.rank }}
                   {{ data?.commander.name }}
@@ -458,7 +569,7 @@ const ICON_SIZE = 16
 
             <div
               v-if="profileOpen"
-              class="absolute right-0 z-20 mt-2 w-44 rounded-xl border border-white/10 bg-[#111a2e] p-1.5 shadow-xl"
+              class="absolute right-0 z-50 mt-2 w-44 rounded-xl border border-white/10 bg-[#111a2e] p-1.5 shadow-xl"
             >
               <button
                 v-for="action in (['Profile', 'Security', 'Logout'] as const)"
@@ -475,24 +586,38 @@ const ICON_SIZE = 16
       </header>
 
       <!-- Content -->
-      <main class="flex-1 space-y-4 p-6">
-
+      <main
+        class="min-w-0 flex-1 space-y-4 p-4 sm:p-6"
+      >
+        <!-- Page heading -->
         <div>
-          <h1 class="text-xl font-extrabold tracking-tight text-white">
+          <button
+            type="button"
+            @click="goBack"
+            class="mb-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-semibold text-slate-400 transition-colors hover:bg-white/5 hover:text-white"
+          >
+            <ArrowLeft :size="14" />
+            Back
+          </button>
+
+          <h1
+            class="text-lg font-extrabold tracking-tight text-white sm:text-xl"
+          >
             Security
           </h1>
 
-          <p class="mt-0.5 text-xs text-slate-400">
-            Manage your password, two-factor authentication, and active sessions
+          <p class="mt-0.5 max-w-2xl text-xs text-slate-400">
+            Manage your password, two-factor authentication, and active
+            sessions
           </p>
         </div>
 
         <!-- Loading -->
         <div
           v-if="loading"
-          class="flex items-center justify-center rounded-2xl border border-white/5 bg-[#0d1526] p-16"
+          class="flex items-center justify-center rounded-2xl border border-white/5 bg-[#0d1526] p-10 sm:p-16"
         >
-          <div class="flex flex-col items-center gap-3 text-slate-400">
+          <div class="flex flex-col items-center gap-3 text-center text-slate-400">
             <RotateCw
               :size="22"
               class="animate-spin"
@@ -507,7 +632,7 @@ const ICON_SIZE = 16
         <!-- Error -->
         <div
           v-else-if="error"
-          class="flex flex-col items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-16 text-center"
+          class="flex flex-col items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center sm:p-16"
         >
           <AlertTriangle
             :size="28"
@@ -519,9 +644,9 @@ const ICON_SIZE = 16
             Couldn't load security settings
           </p>
 
-          <p class="text-xs text-slate-400">
+          <p class="max-w-xl text-xs leading-relaxed text-slate-400">
             {{ error.message }} — expected data from
-            <code class="rounded bg-white/5 px-1.5 py-0.5">
+            <code class="break-all rounded bg-white/5 px-1.5 py-0.5">
               /api/commander/security
             </code>
           </p>
@@ -536,13 +661,11 @@ const ICON_SIZE = 16
         </div>
 
         <template v-else-if="data">
-
           <!-- Password + 2FA -->
-          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-
+          <div class="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
             <!-- Change password -->
             <div
-              class="rounded-2xl border border-white/5 bg-[#0d1526] p-5"
+              class="min-w-0 rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-5"
             >
               <div class="flex items-center gap-2">
                 <KeyRound
@@ -557,7 +680,6 @@ const ICON_SIZE = 16
               </div>
 
               <div class="mt-3 space-y-3">
-
                 <!-- Current password -->
                 <div class="relative">
                   <input
@@ -582,6 +704,7 @@ const ICON_SIZE = 16
                       v-if="showCurrentPassword"
                       :size="15"
                     />
+
                     <Eye
                       v-else
                       :size="15"
@@ -613,6 +736,7 @@ const ICON_SIZE = 16
                       v-if="showNewPassword"
                       :size="15"
                     />
+
                     <Eye
                       v-else
                       :size="15"
@@ -644,6 +768,7 @@ const ICON_SIZE = 16
                       v-if="showConfirmPassword"
                       :size="15"
                     />
+
                     <Eye
                       v-else
                       :size="15"
@@ -670,7 +795,7 @@ const ICON_SIZE = 16
                 type="button"
                 :disabled="changingPassword"
                 @click="changePassword"
-                class="mt-3 rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                class="mt-3 w-full rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50 sm:w-auto"
               >
                 {{
                   changingPassword
@@ -682,7 +807,7 @@ const ICON_SIZE = 16
 
             <!-- Two-factor authentication -->
             <div
-              class="rounded-2xl border border-white/5 bg-[#0d1526] p-5"
+              class="min-w-0 rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-5"
             >
               <div class="flex items-center gap-2">
                 <Smartphone
@@ -706,7 +831,6 @@ const ICON_SIZE = 16
                 v-if="!data.twoFactorEnabled"
                 class="mt-4 space-y-3"
               >
-
                 <!-- PIN -->
                 <div>
                   <label
@@ -807,11 +931,11 @@ const ICON_SIZE = 16
               </p>
 
               <div
-                class="mt-4 flex items-center justify-between rounded-xl border border-white/5 p-3.5"
+                class="mt-4 flex flex-col gap-3 rounded-xl border border-white/5 p-3.5 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div class="flex items-center gap-2">
                   <span
-                    class="h-2 w-2 rounded-full"
+                    class="h-2 w-2 shrink-0 rounded-full"
                     :class="
                       data.twoFactorEnabled
                         ? 'bg-emerald-400'
@@ -834,7 +958,7 @@ const ICON_SIZE = 16
                   type="button"
                   :disabled="togglingTwoFactor"
                   @click="toggleTwoFactor"
-                  class="rounded-lg px-3.5 py-1.5 text-xs font-semibold disabled:opacity-50"
+                  class="w-full rounded-lg px-3.5 py-1.5 text-xs font-semibold disabled:opacity-50 sm:w-auto"
                   :class="
                     data.twoFactorEnabled
                       ? 'border border-red-500/30 bg-red-500/10 text-red-300 hover:bg-red-500/20'
@@ -854,11 +978,10 @@ const ICON_SIZE = 16
           </div>
 
           <!-- Login history + Active sessions -->
-          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-
+          <div class="grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-2">
             <!-- Login history -->
             <div
-              class="rounded-2xl border border-white/5 bg-[#0d1526] p-5"
+              class="min-w-0 rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-5"
             >
               <div class="flex items-center gap-2">
                 <History
@@ -874,7 +997,7 @@ const ICON_SIZE = 16
 
               <div class="mt-3 overflow-x-auto">
                 <table
-                  class="w-full min-w-[340px] text-left text-xs"
+                  class="w-full min-w-[480px] text-left text-xs"
                 >
                   <thead>
                     <tr class="text-slate-500">
@@ -913,20 +1036,20 @@ const ICON_SIZE = 16
                       :key="i"
                       class="border-t border-white/5"
                     >
-                      <td class="py-2.5 text-slate-300">
+                      <td class="py-2.5 pr-3 text-slate-300">
                         {{ entry.device }}
                       </td>
 
-                      <td class="py-2.5 text-slate-400">
+                      <td class="py-2.5 pr-3 text-slate-400">
                         {{ entry.location }}
                       </td>
 
-                      <td class="py-2.5 text-slate-500">
+                      <td class="whitespace-nowrap py-2.5 pr-3 text-slate-500">
                         {{ entry.timeLabel }}
                       </td>
 
                       <td
-                        class="py-2.5 text-right font-semibold"
+                        class="whitespace-nowrap py-2.5 text-right font-semibold"
                         :class="
                           entry.status === 'Success'
                             ? 'text-emerald-400'
@@ -939,11 +1062,15 @@ const ICON_SIZE = 16
                   </tbody>
                 </table>
               </div>
+
+              <p class="mt-2 text-[10px] text-slate-600 sm:hidden">
+                Swipe horizontally to view all activity details.
+              </p>
             </div>
 
             <!-- Active sessions -->
             <div
-              class="rounded-2xl border border-white/5 bg-[#0d1526] p-5"
+              class="min-w-0 rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-5"
             >
               <div class="flex items-center gap-2">
                 <Monitor
@@ -958,7 +1085,6 @@ const ICON_SIZE = 16
               </div>
 
               <div class="mt-3 space-y-2.5">
-
                 <div
                   v-if="!data.activeSessions.length"
                   class="text-xs text-slate-500"
@@ -969,11 +1095,11 @@ const ICON_SIZE = 16
                 <div
                   v-for="session in data.activeSessions"
                   :key="session.id"
-                  class="flex items-center justify-between rounded-xl border border-white/5 p-3"
+                  class="flex flex-col gap-3 rounded-xl border border-white/5 p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
-                  <div>
+                  <div class="min-w-0">
                     <p
-                      class="flex items-center gap-2 text-xs font-semibold text-slate-200"
+                      class="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-200"
                     >
                       {{ session.device }}
 
@@ -986,7 +1112,7 @@ const ICON_SIZE = 16
                     </p>
 
                     <p
-                      class="mt-0.5 text-[11px] text-slate-500"
+                      class="mt-0.5 break-words text-[11px] text-slate-500"
                     >
                       {{ session.location }}
                       &middot;
@@ -999,7 +1125,7 @@ const ICON_SIZE = 16
                     type="button"
                     :disabled="revokingId === session.id"
                     @click="revokeSession(session.id)"
-                    class="rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1 text-[11px] font-semibold text-red-300 hover:bg-red-500/20 disabled:opacity-50"
+                    class="w-full shrink-0 rounded-lg border border-red-500/30 bg-red-500/10 px-2.5 py-1.5 text-[11px] font-semibold text-red-300 hover:bg-red-500/20 disabled:opacity-50 sm:w-auto"
                   >
                     {{
                       revokingId === session.id
@@ -1016,3 +1142,25 @@ const ICON_SIZE = 16
     </div>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.25s ease;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  transform: translateX(-100%);
+}
+</style>

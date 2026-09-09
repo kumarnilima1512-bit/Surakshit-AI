@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import {
   Home,
   Users,
@@ -16,6 +16,8 @@ import {
   ChevronDown,
   Plus,
   RotateCw,
+  ArrowLeft,
+  X,
   type LucideIcon,
 } from 'lucide-vue-next'
 
@@ -81,6 +83,33 @@ function isActive(to: string) {
   )
 }
 
+/* ---------------- Mobile sidebar ---------------- */
+
+const sidebarOpen = ref(false)
+
+function toggleSidebar() {
+  sidebarOpen.value = !sidebarOpen.value
+}
+
+function closeSidebar() {
+  sidebarOpen.value = false
+}
+
+watch(
+  () => route.path,
+  () => {
+    sidebarOpen.value = false
+  },
+)
+
+/* ---------------- Back navigation ---------------- */
+
+function goBack() {
+  navigateTo('/commander/dashboard')
+}
+
+/* ---------------- Logout ---------------- */
+
 async function logout() {
   await useFetch('/api/auth/logout', {
     method: 'POST',
@@ -88,6 +117,8 @@ async function logout() {
 
   await navigateTo('/login')
 }
+
+/* ---------------- Top search ---------------- */
 
 const topSearchQuery = ref('')
 
@@ -101,6 +132,8 @@ function submitTopSearch() {
     query: { q },
   })
 }
+
+/* ---------------- Profile dropdown ---------------- */
 
 const profileOpen = ref(false)
 
@@ -444,10 +477,14 @@ const ICON_SIZE = 16
 
 <template>
   <div class="flex min-h-screen bg-[#0b1220] text-slate-100">
-    <!-- Sidebar -->
+
+    <!-- ================================================================
+         DESKTOP SIDEBAR
+         ================================================================ -->
     <aside
-      class="flex w-64 shrink-0 flex-col border-r border-white/5 bg-[#0d1526]"
+      class="hidden w-64 shrink-0 flex-col border-r border-white/5 bg-[#0d1526] lg:flex"
     >
+      <!-- Logo -->
       <div class="flex items-center gap-3 px-5 py-5">
         <div
           class="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500/15 text-emerald-400"
@@ -459,7 +496,7 @@ const ICON_SIZE = 16
           />
         </div>
 
-        <div>
+        <div class="min-w-0">
           <p
             class="text-sm font-bold leading-tight text-white"
           >
@@ -474,6 +511,7 @@ const ICON_SIZE = 16
         </div>
       </div>
 
+      <!-- Navigation -->
       <nav class="flex-1 space-y-1 px-3">
         <NuxtLink
           v-for="item in navItems"
@@ -492,10 +530,11 @@ const ICON_SIZE = 16
             :stroke-width="1.5"
           />
 
-          {{ item.label }}
+          <span>{{ item.label }}</span>
         </NuxtLink>
       </nav>
 
+      <!-- Logout -->
       <div
         class="border-t border-white/5 px-3 py-3"
       >
@@ -514,24 +553,141 @@ const ICON_SIZE = 16
       </div>
     </aside>
 
-    <!-- Main -->
-    <div
-      class="flex min-h-screen flex-1 flex-col"
-    >
-      <!-- Header -->
-      <header
-        class="flex items-center gap-4 border-b border-white/5 bg-[#0d1526] px-6 py-3.5"
+    <!-- ================================================================
+         MOBILE SIDEBAR OVERLAY
+         ================================================================ -->
+    <Transition name="fade">
+      <div
+        v-if="sidebarOpen"
+        class="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+        @click="closeSidebar"
+      />
+    </Transition>
+
+    <!-- ================================================================
+         MOBILE SIDEBAR DRAWER
+         ================================================================ -->
+    <Transition name="slide">
+      <aside
+        v-if="sidebarOpen"
+        class="fixed inset-y-0 left-0 z-50 flex w-[280px] max-w-[85vw] flex-col border-r border-white/10 bg-[#0d1526] shadow-2xl lg:hidden"
       >
+        <!-- Mobile logo/header -->
+        <div
+          class="flex items-center justify-between border-b border-white/5 px-4 py-4"
+        >
+          <div
+            class="flex min-w-0 items-center gap-3"
+          >
+            <div
+              class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15"
+            >
+              <img
+                src="/logos/surakshit-ai.png"
+                alt="Surakshit AI"
+                class="h-9 w-9 object-contain"
+              />
+            </div>
+
+            <div class="min-w-0">
+              <p
+                class="truncate text-sm font-bold text-white"
+              >
+                Surakshit AI
+              </p>
+
+              <p
+                class="truncate text-[10px] text-slate-400"
+              >
+                Personnel Welfare Monitoring
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            @click="closeSidebar"
+            class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white"
+            aria-label="Close menu"
+          >
+            <X :size="20" />
+          </button>
+        </div>
+
+        <!-- Mobile navigation -->
+        <nav
+          class="flex-1 space-y-1 overflow-y-auto px-3 py-4"
+        >
+          <NuxtLink
+            v-for="item in navItems"
+            :key="item.label"
+            :to="item.to"
+            class="flex items-center gap-3 rounded-lg px-3 py-3 text-sm font-semibold transition-colors"
+            :class="
+              isActive(item.to)
+                ? 'bg-emerald-600 text-white shadow-sm'
+                : 'text-slate-300 hover:bg-white/5'
+            "
+          >
+            <component
+              :is="item.icon"
+              :size="ICON_SIZE"
+              :stroke-width="1.5"
+            />
+
+            <span>{{ item.label }}</span>
+          </NuxtLink>
+        </nav>
+
+        <!-- Mobile logout -->
+        <div
+          class="border-t border-white/5 px-3 py-3"
+        >
+          <button
+            type="button"
+            @click="logout"
+            class="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-slate-200"
+          >
+            <LogOut
+              :size="16"
+              :stroke-width="1.5"
+            />
+
+            Logout
+          </button>
+        </div>
+      </aside>
+    </Transition>
+
+    <!-- ================================================================
+         MAIN APP
+         ================================================================ -->
+    <div
+      class="flex min-h-screen min-w-0 flex-1 flex-col"
+    >
+
+      <!-- ================================================================
+           HEADER
+           ================================================================ -->
+      <header
+        class="flex min-w-0 items-center gap-2 border-b border-white/5 bg-[#0d1526] px-3 py-3 sm:gap-4 sm:px-5 lg:px-6"
+      >
+        <!-- Mobile menu -->
         <button
           type="button"
-          class="rounded-lg p-2 text-slate-400 hover:bg-white/5"
+          @click="toggleSidebar"
+          class="shrink-0 rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white lg:hidden"
           aria-label="Toggle menu"
         >
           <Menu :size="20" />
         </button>
 
+        <!-- Desktop spacer -->
+        <div class="hidden w-1 lg:block" />
+
+        <!-- Search -->
         <form
-          class="relative max-w-md flex-1"
+          class="relative min-w-0 max-w-md flex-1"
           @submit.prevent="submitTopSearch"
         >
           <Search
@@ -543,46 +699,50 @@ const ICON_SIZE = 16
             v-model="topSearchQuery"
             type="text"
             placeholder="Search personnel, unit, or ID..."
-            class="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-4 text-sm text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50"
+            class="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-3 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50 sm:pr-4 sm:text-sm"
           />
         </form>
 
+        <!-- Header actions -->
         <div
-          class="ml-auto flex items-center gap-4"
+          class="ml-auto flex shrink-0 items-center gap-1 sm:gap-2 lg:gap-4"
         >
+          <!-- Notifications -->
           <button
             type="button"
             class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
             aria-label="Notifications"
           >
             <BellIcon
-              :size="20"
+              :size="19"
               :stroke-width="1.5"
             />
           </button>
 
+          <!-- Theme -->
           <button
             type="button"
-            class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200"
+            class="hidden rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-slate-200 sm:block"
             aria-label="Toggle theme"
           >
             <Moon
-              :size="20"
+              :size="19"
               :stroke-width="1.5"
             />
           </button>
 
+          <!-- Profile -->
           <div
-            class="relative border-l border-white/10 pl-4"
+            class="relative border-l border-white/10 pl-2 sm:pl-3 lg:pl-4"
             data-dropdown-root
           >
             <button
               type="button"
               @click.stop="toggleProfile"
-              class="flex items-center gap-2.5"
+              class="flex items-center gap-2"
             >
               <div
-                class="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-700"
+                class="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-700"
               >
                 <img
                   v-if="data?.commander.avatarUrl"
@@ -600,10 +760,10 @@ const ICON_SIZE = 16
               </div>
 
               <div
-                class="text-left leading-tight"
+                class="hidden text-left leading-tight md:block"
               >
                 <p
-                  class="text-sm font-semibold text-white"
+                  class="max-w-[150px] truncate text-sm font-semibold text-white"
                 >
                   {{ data?.commander.rank }}
                   {{ data?.commander.name }}
@@ -618,16 +778,17 @@ const ICON_SIZE = 16
 
               <ChevronDown
                 :size="14"
-                class="text-slate-500 transition-transform"
+                class="hidden text-slate-500 transition-transform md:block"
                 :class="{
                   'rotate-180': profileOpen,
                 }"
               />
             </button>
 
+            <!-- Profile dropdown -->
             <div
               v-if="profileOpen"
-              class="absolute right-0 z-20 mt-2 w-44 rounded-xl border border-white/10 bg-[#111a2e] p-1.5 shadow-xl"
+              class="absolute right-0 z-50 mt-2 w-44 rounded-xl border border-white/10 bg-[#111a2e] p-1.5 shadow-xl"
             >
               <button
                 v-for="action in (['Profile', 'Security', 'Logout'] as const)"
@@ -643,29 +804,53 @@ const ICON_SIZE = 16
         </div>
       </header>
 
-      <!-- Content -->
-      <main class="flex-1 space-y-4 p-6">
+      <!-- ================================================================
+           CONTENT
+           ================================================================ -->
+      <main
+        class="min-w-0 flex-1 space-y-4 p-4 sm:p-5 lg:p-6"
+      >
+
+        <!-- Page heading -->
         <div
-          class="flex flex-wrap items-center justify-between gap-3"
+          class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between"
         >
-          <div>
-            <h1
-              class="text-xl font-extrabold tracking-tight text-white"
-            >
-              Follow-ups
-            </h1>
+          <div class="min-w-0">
+            <div class="flex items-center gap-2">
+              <!-- Back button -->
+              <button
+                type="button"
+                @click="goBack"
+                class="flex shrink-0 items-center gap-1.5 rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
+              >
+                <ArrowLeft :size="14" />
+
+                <span>Back</span>
+              </button>
+
+              <div
+                class="h-4 w-px bg-white/10"
+              />
+
+              <h1
+                class="truncate text-xl font-extrabold tracking-tight text-white sm:text-2xl"
+              >
+                Follow-ups
+              </h1>
+            </div>
 
             <p
-              class="mt-0.5 text-xs text-slate-400"
+              class="mt-1 text-xs text-slate-400"
             >
               Scheduled welfare check-ins across your unit
             </p>
           </div>
 
+          <!-- Schedule button -->
           <button
             type="button"
             @click="showNewForm = !showNewForm"
-            class="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-500"
+            class="flex w-full items-center justify-center gap-1.5 rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-500 sm:w-auto"
           >
             <Plus :size="14" />
 
@@ -673,10 +858,12 @@ const ICON_SIZE = 16
           </button>
         </div>
 
-        <!-- Loading -->
+        <!-- ============================================================
+             LOADING
+             ============================================================ -->
         <div
           v-if="loading"
-          class="flex items-center justify-center rounded-2xl border border-white/5 bg-[#0d1526] p-16"
+          class="flex items-center justify-center rounded-2xl border border-white/5 bg-[#0d1526] p-10 sm:p-16"
         >
           <div
             class="flex flex-col items-center gap-3 text-slate-400"
@@ -692,10 +879,12 @@ const ICON_SIZE = 16
           </div>
         </div>
 
-        <!-- Error -->
+        <!-- ============================================================
+             ERROR
+             ============================================================ -->
         <div
           v-else-if="error"
-          class="flex flex-col items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-16 text-center"
+          class="flex flex-col items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center sm:p-16"
         >
           <AlertTriangle
             :size="28"
@@ -710,7 +899,7 @@ const ICON_SIZE = 16
           </p>
 
           <p
-            class="text-xs text-slate-400"
+            class="max-w-xl text-xs leading-relaxed text-slate-400"
           >
             {{ error.message }} — expected data from
             <code
@@ -730,30 +919,45 @@ const ICON_SIZE = 16
         </div>
 
         <template v-else-if="data">
-          <!-- New follow-up form -->
+
+          <!-- ==========================================================
+               NEW FOLLOW-UP FORM
+               ========================================================== -->
           <div
             v-if="showNewForm"
-            class="rounded-2xl border border-white/5 bg-[#0d1526] p-5"
+            class="rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-5"
           >
-            <h3
-              class="text-sm font-bold text-white"
+            <div
+              class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"
             >
-              Schedule Follow-up
-            </h3>
+              <div>
+                <h3
+                  class="text-sm font-bold text-white"
+                >
+                  Schedule Follow-up
+                </h3>
+
+                <p
+                  class="mt-1 text-[11px] text-slate-500"
+                >
+                  Create a new welfare follow-up for personnel.
+                </p>
+              </div>
+            </div>
 
             <div
-              class="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-4"
+              class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4"
             >
               <input
                 v-model="newPersonnelId"
                 type="text"
                 placeholder="Personnel ID (e.g. P-1024)"
-                class="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50"
+                class="min-w-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50"
               />
 
               <select
                 v-model="newType"
-                class="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
+                class="min-w-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
               >
                 <option
                   v-for="t in followUpTypes"
@@ -767,7 +971,7 @@ const ICON_SIZE = 16
               <input
                 v-model="newDueDate"
                 type="date"
-                class="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
+                class="min-w-0 rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
               />
 
               <button
@@ -778,7 +982,7 @@ const ICON_SIZE = 16
                   creating
                 "
                 @click="scheduleFollowUp"
-                class="rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:opacity-50"
+                class="rounded-lg bg-emerald-600 px-3 py-2.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {{
                   creating
@@ -796,22 +1000,26 @@ const ICON_SIZE = 16
             </p>
           </div>
 
-          <!-- Tabs + table -->
+          <!-- ==========================================================
+               TABS + TABLE
+               ========================================================== -->
           <div
-            class="rounded-2xl border border-white/5 bg-[#0d1526] p-5"
+            class="min-w-0 rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-5"
           >
+            <!-- Controls -->
             <div
-              class="flex flex-wrap items-center justify-between gap-3"
+              class="flex min-w-0 flex-col gap-3 xl:flex-row xl:items-center xl:justify-between"
             >
+              <!-- Tabs -->
               <div
-                class="flex items-center gap-1.5"
+                class="-mx-1 flex min-w-0 items-center gap-1.5 overflow-x-auto px-1 pb-1 xl:pb-0"
               >
                 <button
                   v-for="tab in tabs"
                   :key="tab"
                   type="button"
                   @click="activeTab = tab"
-                  class="rounded-md px-3 py-1.5 text-xs font-semibold"
+                  class="shrink-0 rounded-md px-3 py-1.5 text-xs font-semibold transition-colors"
                   :class="
                     activeTab === tab
                       ? 'bg-emerald-600 text-white'
@@ -828,7 +1036,10 @@ const ICON_SIZE = 16
                 </button>
               </div>
 
-              <div class="relative">
+              <!-- Search -->
+              <div
+                class="relative w-full xl:w-64"
+              >
                 <Search
                   :size="14"
                   class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500"
@@ -838,7 +1049,7 @@ const ICON_SIZE = 16
                   v-model="search"
                   type="text"
                   placeholder="Search follow-ups..."
-                  class="w-56 rounded-lg border border-white/10 bg-white/5 py-1.5 pl-8 pr-3 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50"
+                  class="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-8 pr-3 text-xs text-slate-200 placeholder-slate-500 outline-none focus:border-emerald-500/50"
                 />
               </div>
             </div>
@@ -850,16 +1061,22 @@ const ICON_SIZE = 16
               {{ deleteError }}
             </p>
 
+            <!-- Mobile table hint -->
+            <p
+              class="mt-3 text-[10px] text-slate-600 sm:hidden"
+            >
+              Swipe horizontally to view all columns →
+            </p>
+
+            <!-- Table -->
             <div
-              class="mt-4 overflow-x-auto"
+              class="mt-3 overflow-x-auto sm:mt-4"
             >
               <table
                 class="w-full min-w-[760px] text-left text-xs"
               >
                 <thead>
-                  <tr
-                    class="text-slate-500"
-                  >
+                  <tr class="text-slate-500">
                     <th class="pb-2 font-medium">
                       Personnel
                     </th>
@@ -894,7 +1111,7 @@ const ICON_SIZE = 16
                   >
                     <td
                       colspan="6"
-                      class="py-6 text-center text-slate-500"
+                      class="py-8 text-center text-slate-500"
                     >
                       {{
                         search
@@ -966,7 +1183,7 @@ const ICON_SIZE = 16
                         <button
                           type="button"
                           @click="openEdit(f)"
-                          class="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-slate-200 hover:bg-white/10"
+                          class="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-[11px] font-semibold text-slate-200 hover:bg-white/10"
                         >
                           Edit
                         </button>
@@ -978,7 +1195,7 @@ const ICON_SIZE = 16
                             deletingId === f.id
                           "
                           @click="deleteFollowUp(f.id)"
-                          class="rounded-lg border border-red-500/20 bg-red-500/5 px-2.5 py-1 text-[11px] font-semibold text-red-400 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
+                          class="rounded-lg border border-red-500/20 bg-red-500/5 px-2.5 py-1.5 text-[11px] font-semibold text-red-400 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {{
                             deletingId === f.id
@@ -997,7 +1214,7 @@ const ICON_SIZE = 16
                             completingId === f.id
                           "
                           @click="markComplete(f.id)"
-                          class="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-50"
+                          class="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-[11px] font-semibold text-slate-200 hover:bg-white/10 disabled:opacity-50"
                         >
                           {{
                             completingId === f.id
@@ -1016,19 +1233,22 @@ const ICON_SIZE = 16
       </main>
     </div>
 
-    <!-- Edit Modal -->
+    <!-- ================================================================
+         EDIT MODAL
+         ================================================================ -->
     <div
       v-if="editingFollowUp"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm"
+      class="fixed inset-0 z-[60] flex items-center justify-center overflow-y-auto bg-black/60 px-3 py-4 backdrop-blur-sm sm:px-4"
       @click.self="closeEdit"
     >
       <div
-        class="w-full max-w-md rounded-2xl border border-white/10 bg-[#111a2e] p-5 shadow-2xl"
+        class="my-auto w-full max-w-md rounded-2xl border border-white/10 bg-[#111a2e] p-4 shadow-2xl sm:p-5"
       >
+        <!-- Modal header -->
         <div
           class="flex items-start justify-between gap-4"
         >
-          <div>
+          <div class="min-w-0">
             <h2
               class="text-base font-bold text-white"
             >
@@ -1036,7 +1256,7 @@ const ICON_SIZE = 16
             </h2>
 
             <p
-              class="mt-1 text-xs text-slate-400"
+              class="mt-1 text-xs leading-relaxed text-slate-400"
             >
               Update the scheduled welfare follow-up details.
             </p>
@@ -1045,14 +1265,15 @@ const ICON_SIZE = 16
           <button
             type="button"
             @click="closeEdit"
-            class="rounded-lg p-1.5 text-slate-500 hover:bg-white/5 hover:text-slate-200"
+            class="shrink-0 rounded-lg p-1.5 text-slate-500 hover:bg-white/5 hover:text-slate-200"
             aria-label="Close"
           >
-            ✕
+            <X :size="18" />
           </button>
         </div>
 
         <div class="mt-5 space-y-4">
+
           <!-- Personnel -->
           <div>
             <label
@@ -1062,7 +1283,7 @@ const ICON_SIZE = 16
             </label>
 
             <div
-              class="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-300"
+              class="rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-slate-300"
             >
               {{ editingFollowUp.personnelName }}
 
@@ -1084,7 +1305,7 @@ const ICON_SIZE = 16
 
             <select
               v-model="editType"
-              class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
+              class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
             >
               <option
                 v-for="t in followUpTypes"
@@ -1107,7 +1328,7 @@ const ICON_SIZE = 16
             <input
               v-model="editDueDate"
               type="date"
-              class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
+              class="w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2.5 text-xs text-slate-200 outline-none focus:border-emerald-500/50"
             />
           </div>
 
@@ -1119,13 +1340,14 @@ const ICON_SIZE = 16
           </p>
         </div>
 
+        <!-- Modal actions -->
         <div
-          class="mt-6 flex items-center justify-end gap-2"
+          class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:items-center sm:justify-end"
         >
           <button
             type="button"
             @click="closeEdit"
-            class="rounded-lg border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-semibold text-slate-300 hover:bg-white/10"
+            class="w-full rounded-lg border border-white/10 bg-white/5 px-3.5 py-2.5 text-xs font-semibold text-slate-300 hover:bg-white/10 sm:w-auto"
           >
             Cancel
           </button>
@@ -1138,7 +1360,7 @@ const ICON_SIZE = 16
               savingEdit
             "
             @click="saveEdit"
-            class="rounded-lg bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+            class="w-full rounded-lg bg-emerald-600 px-3.5 py-2.5 text-xs font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
           >
             {{
               savingEdit
@@ -1151,3 +1373,25 @@ const ICON_SIZE = 16
     </div>
   </div>
 </template>
+
+<style scoped>
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.25s ease;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  transform: translateX(-100%);
+}
+</style>
