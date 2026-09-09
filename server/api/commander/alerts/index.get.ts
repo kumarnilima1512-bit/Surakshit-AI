@@ -48,51 +48,17 @@ export default defineEventHandler(async (event) => {
   // CURRENT COMMANDER
   // ------------------------------------------------------------
 
-  const commander = await db.orm.public.User.where({
-    id: authUser.userId,
-  }).first()
+  const commander =
+    await db.orm.public.User.where({
+      id: authUser.userId,
+    }).first()
 
-  if (!commander) {
+  if (!commander || commander.role !== 'COMMANDER') {
     throw createError({
       statusCode: 404,
       statusMessage: 'Commander not found',
     })
   }
-
-  // ------------------------------------------------------------
-  // COMMANDER'S UNITS
-  // ------------------------------------------------------------
-
-  const commanderAssignments =
-    await db.orm.public.UnitAssignment.where({
-      personnelId: commander.id,
-    }).all()
-
-  const commanderUnitIds = commanderAssignments.map(
-    (assignment) => assignment.unitId,
-  )
-
-  // ------------------------------------------------------------
-  // PERSONNEL IN COMMANDER'S UNITS
-  // ------------------------------------------------------------
-
-  const allAssignments =
-    await db.orm.public.UnitAssignment.all()
-
-  const personnelAssignments =
-    allAssignments.filter(
-      (assignment) =>
-        commanderUnitIds.includes(assignment.unitId) &&
-        assignment.personnelId !== commander.id,
-    )
-
-  const personnelIds = [
-    ...new Set(
-      personnelAssignments.map(
-        (assignment) => assignment.personnelId,
-      ),
-    ),
-  ]
 
   // ------------------------------------------------------------
   // LOAD DATA
@@ -101,21 +67,75 @@ export default defineEventHandler(async (event) => {
   const [
     allUsers,
     allUnits,
+    allAssignments,
     allAssessments,
   ] = await Promise.all([
     db.orm.public.User.all(),
     db.orm.public.Unit.all(),
+    db.orm.public.UnitAssignment.all(),
     db.orm.public.Assessment.all(),
   ])
 
+  // ------------------------------------------------------------
+  // ALL PERSONNEL
+  //
+  // Same scope as Welfare High-Risk Cases.
+  // ------------------------------------------------------------
+
   const personnel = allUsers.filter(
-    (user) =>
-      user.role === 'PERSONNEL' &&
-      personnelIds.includes(user.id),
+    (user) => user.role === 'PERSONNEL',
   )
 
   // ------------------------------------------------------------
+  // PERSONNEL IDs
+  // ------------------------------------------------------------
+
+  const personnelIds = new Set(
+    personnel.map((person) => person.id),
+  )
+
+  // ------------------------------------------------------------
+  // UNIT LOOKUP
+  // ------------------------------------------------------------
+
+  const unitById = new Map(
+    allUnits.map((unit) => [
+      unit.id,
+      unit,
+    ]),
+  )
+
+  // ------------------------------------------------------------
+  // PERSONNEL -> UNIT
+  // ------------------------------------------------------------
+
+  const assignmentByPersonnel = new Map<
+    number,
+    (typeof allAssignments)[number]
+  >()
+
+  for (const assignment of allAssignments) {
+    if (
+      personnelIds.has(
+        assignment.personnelId,
+      ) &&
+      !assignmentByPersonnel.has(
+        assignment.personnelId,
+      )
+    ) {
+      assignmentByPersonnel.set(
+        assignment.personnelId,
+        assignment,
+      )
+    }
+  }
+
+  // ------------------------------------------------------------
   // LATEST ASSESSMENT PER PERSONNEL
+  //
+  // IMPORTANT:
+  // We only consider the latest assessment of each
+  // personnel, exactly like Welfare High-Risk Cases.
   // ------------------------------------------------------------
 
   const latestAssessmentByPersonnel = new Map<
@@ -124,7 +144,11 @@ export default defineEventHandler(async (event) => {
   >()
 
   for (const assessment of allAssessments) {
-    if (!personnelIds.includes(assessment.userId)) {
+    if (
+      !personnelIds.has(
+        assessment.userId,
+      )
+    ) {
       continue
     }
 
@@ -135,8 +159,12 @@ export default defineEventHandler(async (event) => {
 
     if (
       !existing ||
-      new Date(assessment.createdAt).getTime() >
-        new Date(existing.createdAt).getTime()
+      new Date(
+        assessment.createdAt,
+      ).getTime() >
+        new Date(
+          existing.createdAt,
+        ).getTime()
     ) {
       latestAssessmentByPersonnel.set(
         assessment.userId,
@@ -146,63 +174,85 @@ export default defineEventHandler(async (event) => {
   }
 
   // ------------------------------------------------------------
-  // BUILD RISK ALERTS
+  // BUILD ALERTS
+  //
+  // High + Elevated only.
   // ------------------------------------------------------------
 
   const alerts = personnel
     .map((person) => {
       const assessment =
-        latestAssessmentByPersonnel.get(person.id)
+        latestAssessmentByPersonnel.get(
+          person.id,
+        )
 
       if (!assessment) {
         return null
       }
 
-      const riskLevel =
-        assessment.riskLevel?.trim().toLowerCase()
+      const normalizedRisk =
+        assessment.riskLevel
+          ?.trim()
+          .toLowerCase()
 
-      // Only Elevated and High are Risk Alerts.
       if (
-        riskLevel !== 'high' &&
-        riskLevel !== 'elevated'
+        normalizedRisk !== 'high' &&
+        normalizedRisk !== 'elevated'
       ) {
         return null
       }
 
       const assignment =
-        personnelAssignments.find(
-          (item) =>
-            item.personnelId === person.id,
+        assignmentByPersonnel.get(
+          person.id,
         )
 
-      const unit = allUnits.find(
-        (item) =>
-          item.id === assignment?.unitId,
-      )
+      const unit = assignment
+        ? unitById.get(
+            assignment.unitId,
+          )
+        : null
 
       const score = Number(
         assessment.stressScore.toFixed(2),
       )
 
       const severity =
-        getSeverity(assessment.riskLevel)
+        getSeverity(
+          assessment.riskLevel,
+        )
 
       const title =
-        riskLevel === 'high'
+        normalizedRisk === 'high'
           ? 'High Risk Personnel Detected'
           : 'Elevated Risk Personnel Detected'
 
       const detail =
-        `${person.name ?? 'Personnel'} has a ${assessment.riskLevel} stress risk level with a stress score of ${score}/10.`
+        `${person.name ?? 'Personnel'} has a ` +
+        `${assessment.riskLevel} stress risk level ` +
+        `with a stress score of ${score}/10.`
 
       return {
         id: String(assessment.id),
+
         title,
+
         detail,
+
         severity,
-        personnelId: String(person.id),
-        subUnit: unit?.name ?? 'Unassigned',
-        time: formatTime(assessment.createdAt),
+
+        personnelId: String(
+          person.id,
+        ),
+
+        subUnit:
+          unit?.name ??
+          'Unassigned',
+
+        time: formatTime(
+          assessment.createdAt,
+        ),
+
         acknowledged:
           assessment.seenbyCommander,
       }
@@ -210,11 +260,28 @@ export default defineEventHandler(async (event) => {
     .filter(
       (
         alert,
-      ): alert is NonNullable<typeof alert> =>
-        alert !== null,
+      ): alert is NonNullable<
+        typeof alert
+      > => alert !== null,
     )
     .sort(
       (a, b) => {
+        // High first
+        if (
+          a.severity === 'Critical' &&
+          b.severity !== 'Critical'
+        ) {
+          return -1
+        }
+
+        if (
+          a.severity !== 'Critical' &&
+          b.severity === 'Critical'
+        ) {
+          return 1
+        }
+
+        // Then highest stress score first.
         const aAssessment =
           latestAssessmentByPersonnel.get(
             Number(a.personnelId),
@@ -226,21 +293,29 @@ export default defineEventHandler(async (event) => {
           )
 
         return (
-          new Date(
-            bAssessment?.createdAt ?? '',
-          ).getTime() -
-          new Date(
-            aAssessment?.createdAt ?? '',
-          ).getTime()
+          (bAssessment?.stressScore ?? 0) -
+          (aAssessment?.stressScore ?? 0)
         )
       },
     )
 
+  // ------------------------------------------------------------
+  // RESPONSE
+  // ------------------------------------------------------------
+
   return {
     commander: {
-      name: commander.name ?? '',
-      rank: commander.rank ?? 'Commander',
-      avatarUrl: commander.profilePicture ?? null,
+      name:
+        commander.name ??
+        '',
+
+      rank:
+        commander.rank ??
+        'Commander',
+
+      avatarUrl:
+        commander.profilePicture ??
+        null,
     },
 
     alerts,
