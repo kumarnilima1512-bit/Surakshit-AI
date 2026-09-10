@@ -679,6 +679,7 @@ const handleLogin = async () => {
         <!-- Smart Card -->
         <button
           type="button"
+          @click="navigateTo('/smartcardlogin')"
           class="flex w-full items-center justify-center gap-2 rounded-xl border border-slate-300 py-3 text-sm font-bold uppercase tracking-wide text-slate-700 transition-colors hover:border-slate-400"
         >
           <svg
