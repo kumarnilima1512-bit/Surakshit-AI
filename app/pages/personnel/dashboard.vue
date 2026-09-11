@@ -1,6 +1,7 @@
 <!--
   pages/personnel/dashboard.vue
   Nuxt 3 + Composition API + Tailwind rewrite.
+  Now fully mobile responsive (sidebar becomes a slide-in drawer below `lg`).
   Install once:
     npm install lucide-vue-next
 -->
@@ -16,6 +17,7 @@ import {
   ShieldCheck,
   LogOut,
   Menu,
+  X,
   Search,
   Bell,
   Moon,
@@ -129,6 +131,21 @@ async function logout() {
   await navigateTo('/login')
 }
 
+/* ---------------- Mobile sidebar drawer ---------------- */
+const mobileSidebarOpen = ref(false)
+
+function closeMobileSidebar() {
+  mobileSidebarOpen.value = false
+}
+
+// Close the drawer automatically whenever the route changes (link tapped)
+watch(
+  () => route.path,
+  () => {
+    mobileSidebarOpen.value = false
+  }
+)
+
 /* ---------------- Dark mode (real toggle, persisted) ---------------- */
 const darkModeCookie = useCookie<'dark' | 'light'>('surakshit-theme', { default: () => 'dark' })
 const darkMode = ref(darkModeCookie.value === 'dark')
@@ -144,9 +161,12 @@ function toggleDarkMode() {
 
 /* ---------------- Search ---------------- */
 const searchQuery = ref('')
+const mobileSearchOpen = ref(false)
+
 function submitSearch() {
   const q = searchQuery.value.trim()
   if (!q) return
+  mobileSearchOpen.value = false
   navigateTo({ path: '/personnel/search', query: { q } })
 }
 
@@ -236,23 +256,41 @@ const ICON_SIZE_SM = 15
 
 <template>
   <div class="flex min-h-screen bg-[#0b1220] text-slate-100">
+    <!-- ================= Mobile backdrop ================= -->
+    <div
+      v-if="mobileSidebarOpen"
+      class="fixed inset-0 z-30 bg-black/60 lg:hidden"
+      @click="closeMobileSidebar"
+    ></div>
+
     <!-- ================= Sidebar ================= -->
-    <aside class="flex w-64 shrink-0 flex-col border-r border-white/5 bg-[#0d1526]">
+    <aside
+      class="fixed inset-y-0 left-0 z-40 flex w-64 shrink-0 -translate-x-full flex-col border-r border-white/5 bg-[#0d1526] transition-transform duration-200 ease-out lg:static lg:translate-x-0"
+      :class="mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full'"
+    >
       <div class="flex items-center gap-3 px-5 py-5">
-        <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400">
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-600/20 text-blue-400">
           <img
-  src="/logos/surakshit-ai.png"
-  alt="Surakshit AI"
-  class="h-16 w-16 object-contain"
-/>
+            src="/logos/surakshit-ai.png"
+            alt="Surakshit AI"
+            class="h-10 w-10 object-contain"
+          >
         </div>
-        <div>
-          <p class="text-sm font-bold leading-tight text-white">Surakshit AI</p>
-          <p class="text-[10px] leading-tight text-slate-400">Personnel Stress &amp; Welfare Monitoring</p>
+        <div class="min-w-0">
+          <p class="truncate text-sm font-bold leading-tight text-white">Surakshit AI</p>
+          <p class="truncate text-[10px] leading-tight text-slate-400">Personnel Stress &amp; Welfare Monitoring</p>
         </div>
+        <button
+          type="button"
+          class="ml-auto rounded-lg p-1.5 text-slate-400 hover:bg-white/5 lg:hidden"
+          aria-label="Close menu"
+          @click="closeMobileSidebar"
+        >
+          <X :size="18" />
+        </button>
       </div>
 
-      <nav class="flex-1 space-y-1 px-3 pb-4">
+      <nav class="flex-1 space-y-1 overflow-y-auto px-3 pb-4">
         <NuxtLink
           v-for="item in navItems" :key="item.label" :to="item.to"
           class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-semibold transition-colors"
@@ -279,14 +317,23 @@ const ICON_SIZE_SM = 15
     </aside>
 
     <!-- ================= Main ================= -->
-    <div class="flex min-h-screen flex-1 flex-col">
+    <div class="flex min-h-screen flex-1 flex-col overflow-x-hidden">
       <!-- Top bar -->
-      <header class="flex items-center gap-4 border-b border-white/5 bg-[#0d1526] px-6 py-3.5">
-        <button type="button" class="rounded-lg p-2 text-slate-400 hover:bg-white/5" aria-label="Toggle menu">
+      <header class="flex items-center gap-2 border-b border-white/5 bg-[#0d1526] px-3 py-3 sm:gap-4 sm:px-6 sm:py-3.5">
+        <button
+          type="button"
+          class="rounded-lg p-2 text-slate-400 hover:bg-white/5 lg:hidden"
+          aria-label="Toggle menu"
+          @click="mobileSidebarOpen = true"
+        >
           <Menu :size="20" />
         </button>
 
-        <form class="relative max-w-md flex-1" @submit.prevent="submitSearch">
+        <!-- Search: full form on sm+, icon-triggered on mobile -->
+        <form
+          class="relative hidden max-w-md flex-1 sm:block"
+          @submit.prevent="submitSearch"
+        >
           <Search :size="16" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
           <input
             v-model="searchQuery" type="text" placeholder="Search anything..."
@@ -294,7 +341,16 @@ const ICON_SIZE_SM = 15
           >
         </form>
 
-        <div class="ml-auto flex items-center gap-4">
+        <button
+          type="button"
+          class="rounded-lg p-2 text-slate-400 hover:bg-white/5 sm:hidden"
+          aria-label="Search"
+          @click="mobileSearchOpen = !mobileSearchOpen"
+        >
+          <Search :size="20" :stroke-width="1.5" />
+        </button>
+
+        <div class="ml-auto flex items-center gap-1.5 sm:gap-4">
           <!-- Notifications -->
           <div class="relative">
             <button
@@ -311,7 +367,7 @@ const ICON_SIZE_SM = 15
 
             <div
               v-if="notificationsOpen"
-              class="absolute right-0 z-20 mt-2 w-72 rounded-xl border border-white/10 bg-[#111a2e] p-2 shadow-xl"
+              class="fixed inset-x-3 top-16 z-20 mt-0 w-auto rounded-xl border border-white/10 bg-[#111a2e] p-2 shadow-xl sm:absolute sm:inset-x-auto sm:right-0 sm:top-full sm:mt-2 sm:w-72"
             >
               <p class="px-2 py-1.5 text-xs font-bold text-white">Notifications</p>
               <div v-if="!data?.notifications.length" class="px-2 py-4 text-center text-xs text-slate-500">
@@ -339,23 +395,34 @@ const ICON_SIZE_SM = 15
             <Moon v-else :size="20" :stroke-width="1.5" />
           </button>
 
-          <NuxtLink to="/personnel/profile" class="flex items-center gap-2.5 border-l border-white/10 pl-4">
-            <div class="flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-slate-700">
+          <NuxtLink to="/personnel/profile" class="flex items-center gap-2 border-l border-white/10 pl-2 sm:gap-2.5 sm:pl-4">
+            <div class="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-700">
               <img v-if="data?.profile.avatarUrl" :src="data.profile.avatarUrl" class="h-full w-full object-cover" alt="">
               <User v-else :size="18" :stroke-width="1.5" class="text-slate-300" />
             </div>
-            <div class="leading-tight">
+            <div class="hidden leading-tight sm:block">
               <p class="text-sm font-semibold text-white">{{ data?.profile.serviceId ?? '—' }}</p>
               <p class="text-[11px] text-slate-400">{{ data?.profile.rank ?? '' }}</p>
             </div>
-            <ChevronDown :size="16" class="text-slate-500" />
+            <ChevronDown :size="16" class="hidden text-slate-500 sm:block" />
           </NuxtLink>
         </div>
       </header>
 
-      <main class="flex-1 space-y-6 p-6">
+      <!-- Mobile search bar (collapsible) -->
+      <div v-if="mobileSearchOpen" class="border-b border-white/5 bg-[#0d1526] px-3 py-3 sm:hidden">
+        <form class="relative" @submit.prevent="submitSearch">
+          <Search :size="16" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <input
+            v-model="searchQuery" type="text" placeholder="Search anything..." autofocus
+            class="w-full rounded-lg border border-white/10 bg-white/5 py-2 pl-9 pr-4 text-sm text-slate-200 placeholder-slate-500 outline-none focus:border-blue-500/50"
+          >
+        </form>
+      </div>
+
+      <main class="flex-1 space-y-4 p-3 sm:space-y-6 sm:p-6">
         <!-- Loading state -->
-        <div v-if="loading" class="flex items-center justify-center rounded-2xl border border-white/5 bg-[#0d1526] p-16">
+        <div v-if="loading" class="flex items-center justify-center rounded-2xl border border-white/5 bg-[#0d1526] p-10 sm:p-16">
           <div class="flex flex-col items-center gap-3 text-slate-400">
             <RotateCw :size="22" class="animate-spin" />
             <p class="text-sm">Loading your dashboard…</p>
@@ -363,7 +430,7 @@ const ICON_SIZE_SM = 15
         </div>
 
         <!-- Error state -->
-        <div v-else-if="error" class="flex flex-col items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-16 text-center">
+        <div v-else-if="error" class="flex flex-col items-center gap-3 rounded-2xl border border-red-500/20 bg-red-500/5 p-8 text-center sm:p-16">
           <AlertTriangle :size="28" class="text-red-400" :stroke-width="1.5" />
           <p class="text-sm font-semibold text-red-300">Couldn't load your dashboard</p>
           <p class="text-xs text-slate-400">{{ error.message }} — expected data from <code class="rounded bg-white/5 px-1.5 py-0.5">/api/personnel/dashboard</code></p>
@@ -374,27 +441,27 @@ const ICON_SIZE_SM = 15
         <template v-else-if="data">
           <!-- Welcome banner + profile card -->
           <div class="grid grid-cols-1 gap-4 xl:grid-cols-[2.4fr_1fr]">
-            <div class="relative flex items-center overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-r from-slate-800 to-slate-900 p-6">
+            <div class="relative flex flex-col overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-r from-slate-800 to-slate-900 p-4 sm:flex-row sm:items-center sm:p-6">
               <div class="relative z-10">
-                <p class="flex items-center gap-2 text-lg font-bold text-white">
+                <p class="flex items-center gap-2 text-base font-bold text-white sm:text-lg">
                   <span>👋</span> Welcome Back, {{ data.profile.serviceId }}
                 </p>
                 <p class="mt-1 text-sm text-slate-300">Your well-being matters. Stay strong, stay supported.</p>
               </div>
-              <p class="relative z-10 ml-auto max-w-xs text-right text-sm italic text-slate-300">
+              <p class="relative z-10 mt-3 text-sm italic text-slate-300 sm:ml-auto sm:mt-0 sm:max-w-xs sm:text-right">
                 "A healthy mind<br>is a stronger force."
               </p>
             </div>
 
             <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-5">
               <div class="flex items-center gap-3">
-                <div class="flex h-14 w-14 items-center justify-center overflow-hidden rounded-full bg-slate-700">
+                <div class="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-700">
                   <img v-if="data.profile.avatarUrl" :src="data.profile.avatarUrl" class="h-full w-full object-cover" alt="">
                   <User v-else :size="26" :stroke-width="1.5" class="text-slate-300" />
                 </div>
-                <div>
-                  <p class="text-sm font-bold text-white">{{ data.profile.serviceId }}</p>
-                  <p class="text-xs text-slate-400">{{ data.profile.rank }}</p>
+                <div class="min-w-0">
+                  <p class="truncate text-sm font-bold text-white">{{ data.profile.serviceId }}</p>
+                  <p class="truncate text-xs text-slate-400">{{ data.profile.rank }}</p>
                   <p class="mt-0.5 flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
                     <span class="h-1.5 w-1.5 rounded-full bg-emerald-400"></span>{{ data.profile.status }}
                   </p>
@@ -402,17 +469,17 @@ const ICON_SIZE_SM = 15
               </div>
 
               <div class="mt-4 space-y-2.5 border-t border-white/5 pt-4 text-xs">
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between gap-2">
                   <span class="text-slate-400">Unit</span>
-                  <span class="font-semibold text-slate-200">{{ data.profile.unit }}</span>
+                  <span class="truncate font-semibold text-slate-200">{{ data.profile.unit }}</span>
                 </div>
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between gap-2">
                   <span class="text-slate-400">Service ID</span>
-                  <span class="font-semibold text-slate-200">{{ data.profile.serviceId }}</span>
+                  <span class="truncate font-semibold text-slate-200">{{ data.profile.serviceId }}</span>
                 </div>
-                <div class="flex items-center justify-between">
+                <div class="flex items-center justify-between gap-2">
                   <span class="text-slate-400">Joined</span>
-                  <span class="font-semibold text-slate-200">{{ data.profile.joinedDate }}</span>
+                  <span class="truncate font-semibold text-slate-200">{{ data.profile.joinedDate }}</span>
                 </div>
               </div>
 
@@ -507,41 +574,43 @@ const ICON_SIZE_SM = 15
           </div>
 
           <!-- Trend + Risk guide + Quick actions -->
-          <div class="grid grid-cols-1 gap-4 xl:grid-cols-[2fr_1.1fr_1fr]">
+          <div class="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-[2fr_1.1fr_1fr]">
             <!-- Stress trend -->
-            <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-5">
-              <div class="flex items-center justify-between">
+            <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-5 lg:col-span-2 xl:col-span-1">
+              <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div class="flex items-center gap-2">
-                  <BarChart2 :size="ICON_SIZE" :stroke-width="1.5" class="text-emerald-400" />
+                  <BarChart2 :size="ICON_SIZE" :stroke-width="1.5" class="shrink-0 text-emerald-400" />
                   <div>
                     <h3 class="text-sm font-bold text-white">Stress Trend</h3>
                     <p class="text-[11px] text-slate-500">Your stress level over the last {{ data.stressTrend.length }} assessments</p>
                   </div>
                 </div>
-                <span class="rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300">{{ data.trendRangeLabel }}</span>
+                <span class="w-fit rounded-lg border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium text-slate-300">{{ data.trendRangeLabel }}</span>
               </div>
 
-              <svg v-if="data.stressTrend.length" :viewBox="`0 0 ${chartW} ${chartH + 30}`" class="mt-4 h-56 w-full">
-                <defs>
-                  <linearGradient id="jawanTrendFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.3" />
-                    <stop offset="100%" stop-color="#fbbf24" stop-opacity="0" />
-                  </linearGradient>
-                  <linearGradient id="jawanTrendLine" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stop-color="#a3e635" />
-                    <stop offset="100%" stop-color="#fb923c" />
-                  </linearGradient>
-                </defs>
-                <line v-for="g in 5" :key="g" x1="0" :x2="chartW" :y1="(chartH / 5) * g" :y2="(chartH / 5) * g" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
-                <path :d="`${trendPath(data.stressTrend)} L ${chartW} ${chartH} L 0 ${chartH} Z`" fill="url(#jawanTrendFill)" />
-                <path :d="trendPath(data.stressTrend)" fill="none" stroke="url(#jawanTrendLine)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
-                <g v-for="(p, i) in data.stressTrend" :key="i">
-                  <circle :cx="trendPointXY(data.stressTrend, i).x" :cy="trendPointXY(data.stressTrend, i).y" r="3.5" fill="#fbbf24" />
-                  <text :x="trendPointXY(data.stressTrend, i).x" :y="trendPointXY(data.stressTrend, i).y - 10" text-anchor="middle" font-size="11" fill="#cbd5e1">{{ p.score }}</text>
-                  <text :x="trendPointXY(data.stressTrend, i).x" :y="chartH + 20" text-anchor="middle" font-size="11" fill="#64748b">{{ p.dateLabel }}</text>
-                </g>
-              </svg>
-              <div v-else class="mt-4 flex h-56 items-center justify-center text-xs text-slate-500">No assessment history yet.</div>
+              <div class="mt-4 overflow-x-auto">
+                <svg v-if="data.stressTrend.length" :viewBox="`0 0 ${chartW} ${chartH + 30}`" class="h-56 w-full min-w-[480px]">
+                  <defs>
+                    <linearGradient id="jawanTrendFill" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.3" />
+                      <stop offset="100%" stop-color="#fbbf24" stop-opacity="0" />
+                    </linearGradient>
+                    <linearGradient id="jawanTrendLine" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stop-color="#a3e635" />
+                      <stop offset="100%" stop-color="#fb923c" />
+                    </linearGradient>
+                  </defs>
+                  <line v-for="g in 5" :key="g" x1="0" :x2="chartW" :y1="(chartH / 5) * g" :y2="(chartH / 5) * g" stroke="rgba(255,255,255,0.06)" stroke-width="1" />
+                  <path :d="`${trendPath(data.stressTrend)} L ${chartW} ${chartH} L 0 ${chartH} Z`" fill="url(#jawanTrendFill)" />
+                  <path :d="trendPath(data.stressTrend)" fill="none" stroke="url(#jawanTrendLine)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                  <g v-for="(p, i) in data.stressTrend" :key="i">
+                    <circle :cx="trendPointXY(data.stressTrend, i).x" :cy="trendPointXY(data.stressTrend, i).y" r="3.5" fill="#fbbf24" />
+                    <text :x="trendPointXY(data.stressTrend, i).x" :y="trendPointXY(data.stressTrend, i).y - 10" text-anchor="middle" font-size="11" fill="#cbd5e1">{{ p.score }}</text>
+                    <text :x="trendPointXY(data.stressTrend, i).x" :y="chartH + 20" text-anchor="middle" font-size="11" fill="#64748b">{{ p.dateLabel }}</text>
+                  </g>
+                </svg>
+                <div v-else class="flex h-56 items-center justify-center text-xs text-slate-500">No assessment history yet.</div>
+              </div>
             </div>
 
             <!-- Risk level guide -->
@@ -555,11 +624,11 @@ const ICON_SIZE_SM = 15
                   <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg" :class="riskTone[g.level].badgeBg">
                     <span class="h-2.5 w-2.5 rounded-full" :class="riskTone[g.level].dot"></span>
                   </span>
-                  <div class="flex-1">
+                  <div class="min-w-0 flex-1">
                     <p class="text-xs font-bold" :class="riskTone[g.level].text">{{ g.level }}</p>
-                    <p class="text-[11px] text-slate-400">{{ g.note }}</p>
+                    <p class="truncate text-[11px] text-slate-400">{{ g.note }}</p>
                   </div>
-                  <span class="text-[11px] font-semibold text-slate-400">{{ g.range }}</span>
+                  <span class="shrink-0 text-[11px] font-semibold text-slate-400">{{ g.range }}</span>
                 </div>
               </div>
             </div>
@@ -575,12 +644,12 @@ const ICON_SIZE_SM = 15
                   v-for="action in quickActions" :key="action.title" :to="action.to"
                   class="flex w-full items-center gap-3 rounded-xl border border-white/5 p-3 text-left hover:bg-white/5"
                 >
-                  <div class="flex h-9 w-9 items-center justify-center rounded-lg" :class="toneClasses[action.tone]">
+                  <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" :class="toneClasses[action.tone]">
                     <component :is="action.icon" :size="ICON_SIZE" :stroke-width="1.5" />
                   </div>
-                  <div class="flex-1">
-                    <p class="text-xs font-semibold text-white">{{ action.title }}</p>
-                    <p class="text-[11px] text-slate-500">{{ action.sub }}</p>
+                  <div class="min-w-0 flex-1">
+                    <p class="truncate text-xs font-semibold text-white">{{ action.title }}</p>
+                    <p class="truncate text-[11px] text-slate-500">{{ action.sub }}</p>
                   </div>
                 </NuxtLink>
               </div>
@@ -589,9 +658,9 @@ const ICON_SIZE_SM = 15
 
           <!-- Recommendations + Recent assessments -->
           <div class="grid grid-cols-1 gap-4 xl:grid-cols-[1.6fr_1.2fr]">
-            <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-5">
+            <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-5">
               <div class="flex items-center gap-2">
-                <Activity :size="ICON_SIZE" :stroke-width="1.5" class="text-amber-400" />
+                <Activity :size="ICON_SIZE" :stroke-width="1.5" class="shrink-0 text-amber-400" />
                 <div>
                   <h3 class="text-sm font-bold text-white">Your Personalized Recommendations</h3>
                   <p class="text-[11px] text-slate-500">Based on your current stress level and wellbeing indicators</p>
@@ -618,7 +687,7 @@ const ICON_SIZE_SM = 15
             </div>
 
             <!-- Recent assessments -->
-            <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-5">
+            <div class="rounded-2xl border border-white/5 bg-[#0d1526] p-4 sm:p-5">
               <div class="flex items-center justify-between">
                 <div class="flex items-center gap-2">
                   <Calendar :size="ICON_SIZE" :stroke-width="1.5" class="text-blue-400" />
@@ -627,37 +696,39 @@ const ICON_SIZE_SM = 15
                 <NuxtLink to="/personnel/history" class="text-xs font-semibold text-blue-400 hover:underline">View All</NuxtLink>
               </div>
 
-              <table class="mt-4 w-full text-left text-xs">
-                <thead>
-                  <tr class="text-slate-500">
-                    <th class="pb-2 font-medium">Date &amp; Time</th>
-                    <th class="pb-2 font-medium">Stress Score</th>
-                    <th class="pb-2 font-medium">Risk Level</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-if="!data.recentAssessments.length">
-                    <td colspan="3" class="py-4 text-center text-slate-500">No assessments yet.</td>
-                  </tr>
-                  <tr v-for="(row, i) in data.recentAssessments" :key="i" class="border-t border-white/5">
-                    <td class="py-2.5 text-slate-300">{{ row.dateTime }}</td>
-                    <td class="py-2.5 font-semibold text-slate-200">{{ row.score }}</td>
-                    <td class="py-2.5">
-                      <span class="flex items-center gap-1.5 font-semibold" :class="riskTone[row.riskLevel].text">
-                        <span class="h-1.5 w-1.5 rounded-full" :class="riskTone[row.riskLevel].dot"></span>{{ row.riskLevel }}
-                      </span>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              <div class="mt-4 overflow-x-auto">
+                <table class="w-full min-w-[420px] text-left text-xs">
+                  <thead>
+                    <tr class="text-slate-500">
+                      <th class="pb-2 font-medium">Date &amp; Time</th>
+                      <th class="pb-2 font-medium">Stress Score</th>
+                      <th class="pb-2 font-medium">Risk Level</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-if="!data.recentAssessments.length">
+                      <td colspan="3" class="py-4 text-center text-slate-500">No assessments yet.</td>
+                    </tr>
+                    <tr v-for="(row, i) in data.recentAssessments" :key="i" class="border-t border-white/5">
+                      <td class="py-2.5 text-slate-300">{{ row.dateTime }}</td>
+                      <td class="py-2.5 font-semibold text-slate-200">{{ row.score }}</td>
+                      <td class="py-2.5">
+                        <span class="flex items-center gap-1.5 font-semibold" :class="riskTone[row.riskLevel].text">
+                          <span class="h-1.5 w-1.5 rounded-full" :class="riskTone[row.riskLevel].dot"></span>{{ row.riskLevel }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </template>
       </main>
 
-      <footer class="flex items-center justify-between border-t border-white/5 px-6 py-4 text-[11px] text-slate-500">
+      <footer class="flex flex-col items-center gap-2 border-t border-white/5 px-4 py-4 text-center text-[11px] text-slate-500 sm:flex-row sm:justify-between sm:text-left">
         <span>Surakshit AI &nbsp;|&nbsp; Personnel Stress &amp; Welfare Monitoring System</span>
-        <span class="flex items-center gap-3">Healthy Personnel &nbsp;|&nbsp; Stronger Forces &nbsp;|&nbsp; Safer Nation</span>
+        <span class="flex flex-wrap items-center justify-center gap-3 sm:justify-end">Healthy Personnel &nbsp;|&nbsp; Stronger Forces &nbsp;|&nbsp; Safer Nation</span>
       </footer>
     </div>
   </div>

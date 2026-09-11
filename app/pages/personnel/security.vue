@@ -1,4 +1,4 @@
-```vue
+
 <script setup lang="ts">
 import {
   ShieldCheck,
