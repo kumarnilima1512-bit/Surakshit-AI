@@ -204,12 +204,15 @@ async function predictStress() {
                 <option value="" disabled>
                   Select gender
                 </option>
+
                 <option value="Male">
                   Male
                 </option>
+
                 <option value="Female">
                   Female
                 </option>
+
                 <option value="Other">
                   Other
                 </option>
@@ -262,12 +265,15 @@ async function predictStress() {
                 <option value="" disabled>
                   Select unit size
                 </option>
+
                 <option value="Small">
                   Small
                 </option>
+
                 <option value="Medium">
                   Medium
                 </option>
+
                 <option value="Large">
                   Large
                 </option>
@@ -288,15 +294,19 @@ async function predictStress() {
                 <option value="" disabled>
                   Select deployment
                 </option>
+
                 <option value="On Duty">
                   On Duty
                 </option>
+
                 <option value="Field">
                   Field
                 </option>
+
                 <option value="Base">
                   Base
                 </option>
+
                 <option value="Remote">
                   Remote
                 </option>
@@ -408,15 +418,55 @@ async function predictStress() {
                 Duty Satisfaction
               </label>
 
-              <input
+              <select
                 v-model.number="form.job_satisfaction"
-                type="number"
-                min="1"
-                max="10"
-                placeholder="e.g. 7"
                 required
-                class="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
+                class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                <option :value="undefined" disabled>
+                  Select satisfaction level
+                </option>
+
+                <option :value="1">
+                  1 — Low
+                </option>
+
+                <option :value="2">
+                  2
+                </option>
+
+                <option :value="3">
+                  3
+                </option>
+
+                <option :value="4">
+                  4
+                </option>
+
+                <option :value="5">
+                  5 — Medium
+                </option>
+
+                <option :value="6">
+                  6
+                </option>
+
+                <option :value="7">
+                  7
+                </option>
+
+                <option :value="8">
+                  8
+                </option>
+
+                <option :value="9">
+                  9
+                </option>
+
+                <option :value="10">
+                  10 — High
+                </option>
+              </select>
             </div>
 
             <!-- Supervisor Support -->
@@ -425,15 +475,55 @@ async function predictStress() {
                 Command / Supervisor Support
               </label>
 
-              <input
+              <select
                 v-model.number="form.manager_support"
-                type="number"
-                min="1"
-                max="10"
-                placeholder="e.g. 8"
                 required
-                class="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
+                class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                <option :value="undefined" disabled>
+                  Select support level
+                </option>
+
+                <option :value="1">
+                  1 — Low
+                </option>
+
+                <option :value="2">
+                  2
+                </option>
+
+                <option :value="3">
+                  3
+                </option>
+
+                <option :value="4">
+                  4
+                </option>
+
+                <option :value="5">
+                  5 — Medium
+                </option>
+
+                <option :value="6">
+                  6
+                </option>
+
+                <option :value="7">
+                  7
+                </option>
+
+                <option :value="8">
+                  8
+                </option>
+
+                <option :value="9">
+                  9
+                </option>
+
+                <option :value="10">
+                  10 — High
+                </option>
+              </select>
             </div>
 
             <!-- Work Life Balance -->
@@ -442,15 +532,55 @@ async function predictStress() {
                 Work-Life Balance
               </label>
 
-              <input
+              <select
                 v-model.number="form.work_life_balance"
-                type="number"
-                min="1"
-                max="10"
-                placeholder="e.g. 6"
                 required
-                class="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
+                class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                <option :value="undefined" disabled>
+                  Select balance level
+                </option>
+
+                <option :value="1">
+                  1 — Low
+                </option>
+
+                <option :value="2">
+                  2
+                </option>
+
+                <option :value="3">
+                  3
+                </option>
+
+                <option :value="4">
+                  4
+                </option>
+
+                <option :value="5">
+                  5 — Medium
+                </option>
+
+                <option :value="6">
+                  6
+                </option>
+
+                <option :value="7">
+                  7
+                </option>
+
+                <option :value="8">
+                  8
+                </option>
+
+                <option :value="9">
+                  9
+                </option>
+
+                <option :value="10">
+                  10 — High
+                </option>
+              </select>
             </div>
 
             <!-- Social Support -->
@@ -459,15 +589,55 @@ async function predictStress() {
                 Social / Family Support
               </label>
 
-              <input
+              <select
                 v-model.number="form.social_support_score"
-                type="number"
-                min="1"
-                max="10"
-                placeholder="e.g. 8"
                 required
-                class="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
-              />
+                class="mt-2 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-700 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+              >
+                <option :value="undefined" disabled>
+                  Select support level
+                </option>
+
+                <option :value="1">
+                  1 — Low
+                </option>
+
+                <option :value="2">
+                  2
+                </option>
+
+                <option :value="3">
+                  3
+                </option>
+
+                <option :value="4">
+                  4
+                </option>
+
+                <option :value="5">
+                  5 — Medium
+                </option>
+
+                <option :value="6">
+                  6
+                </option>
+
+                <option :value="7">
+                  7
+                </option>
+
+                <option :value="8">
+                  8
+                </option>
+
+                <option :value="9">
+                  9
+                </option>
+
+                <option :value="10">
+                  10 — High
+                </option>
+              </select>
             </div>
 
             <!-- Sleep -->
@@ -531,7 +701,7 @@ async function predictStress() {
                 v-model.number="form.caffeine_intake"
                 type="number"
                 min="0"
-                placeholder="e.g. 2"
+                placeholder="e.g. 2 cups per day"
                 required
                 class="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
               />
