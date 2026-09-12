@@ -37,6 +37,8 @@ interface AssessmentRow {
   score: number
   riskLevel: RiskLevel
   notes: string
+  emotion: string | null
+  emotionConfidence: number | null
 }
 
 interface WelfareNote {
@@ -55,6 +57,8 @@ interface PersonnelDetail {
   avatarUrl: string | null
   currentStressScore: number
   maxStressScore: number
+  emotion: string | null
+  emotionConfidence: number | null
   riskLevel: RiskLevel
   riskLevelNote: string
   lastAssessmentDate: string
@@ -230,6 +234,8 @@ async function submitNote() {
     savingNote.value = false
   }
 }
+
+
 
 /* ---------------- Schedule follow-up ---------------- */
 
@@ -588,6 +594,99 @@ async function scheduleFollowUp() {
         </div>
       </div>
 
+              <!-- ============================================================
+             Facial Emotion
+             ============================================================ -->
+
+        <div
+          class="rounded-2xl border border-white/5 bg-[#0d1526] p-5"
+        >
+          <div
+            class="flex items-center gap-2"
+          >
+            <User
+              :size="15"
+              :stroke-width="1.5"
+              class="text-violet-400"
+            />
+
+            <h3
+              class="text-xs font-bold text-white"
+            >
+              Facial Emotion
+            </h3>
+          </div>
+
+          <div
+            v-if="data.emotion"
+            class="mt-4"
+          >
+            <p class="text-[10px] text-slate-500">
+              Detected Emotion
+            </p>
+
+            <p
+              class="mt-1 text-xl font-extrabold capitalize text-white"
+            >
+              {{ data.emotion }}
+            </p>
+
+            <div
+              v-if="data.emotionConfidence !== null"
+              class="mt-3"
+            >
+              <div
+                class="flex items-center justify-between text-[10px]"
+              >
+                <span class="text-slate-500">
+                  Detection Confidence
+                </span>
+
+                <span class="font-semibold text-slate-300">
+                  {{
+                    Math.round(
+                      data.emotionConfidence * 100,
+                    )
+                  }}%
+                </span>
+              </div>
+
+              <div
+                class="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/5"
+              >
+                <div
+                  class="h-full rounded-full bg-violet-500 transition-all"
+                  :style="{
+                    width: `${Math.min(
+                      Math.max(
+                        data.emotionConfidence * 100,
+                        0,
+                      ),
+                      100,
+                    )}%`,
+                  }"
+                ></div>
+              </div>
+            </div>
+          </div>
+
+          <div
+            v-else
+            class="mt-4 flex min-h-[90px] items-center justify-center text-center"
+          >
+            <p class="text-xs text-slate-500">
+              No facial emotion data available.
+            </p>
+          </div>
+
+          <p
+            class="mt-3 text-[10px] leading-relaxed text-slate-600"
+          >
+            Facial expression is an additional wellbeing
+            indicator and is not a medical diagnosis.
+          </p>
+        </div>
+
       <!-- ================================================================
            Trend + Actions
            ================================================================ -->
@@ -757,7 +856,7 @@ async function scheduleFollowUp() {
 
           <div class="mt-3 overflow-x-auto">
             <table
-              class="w-full min-w-[560px] text-left text-xs"
+              class="w-full min-w-[680px] text-left text-xs"
             >
               <thead>
                 <tr class="text-slate-500">
@@ -776,6 +875,14 @@ async function scheduleFollowUp() {
                   <th class="pb-2 font-medium">
                     Notes
                   </th>
+
+                  <th class="pb-2 font-medium">
+                    Emotion
+                  </th>
+
+                  <th class="pb-2 font-medium">
+                    Emotion Confidence
+                  </th>
                 </tr>
               </thead>
 
@@ -786,7 +893,7 @@ async function scheduleFollowUp() {
                   "
                 >
                   <td
-                    colspan="4"
+                    colspan="5"
                     class="py-5 text-center text-slate-500"
                   >
                     No assessments yet.
@@ -822,6 +929,34 @@ async function scheduleFollowUp() {
                   >
                     {{ row.riskLevel }}
                   </td>
+
+                  <td
+  class="py-2.5 text-slate-300"
+>
+  <div v-if="row.emotion">
+    <p class="capitalize font-semibold text-slate-200">
+      {{ row.emotion }}
+    </p>
+
+    <p
+      v-if="row.emotionConfidence !== null"
+      class="text-[10px] text-slate-500"
+    >
+      {{
+        Math.round(
+          row.emotionConfidence * 100,
+        )
+      }}% confidence
+    </p>
+  </div>
+
+  <span
+    v-else
+    class="text-slate-600"
+  >
+    —
+  </span>
+</td>
 
                   <td
                     class="py-2.5 text-slate-400"

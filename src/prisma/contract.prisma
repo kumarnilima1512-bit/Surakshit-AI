@@ -93,16 +93,18 @@ model Post {
 }
 
 model Assessment {
-  id              Int               @id @default(autoincrement())
-  userId          Int
-  stressScore     Float
-  riskLevel       String
-  seenByWelfare   Boolean           @default(false)
-  seenbyCommander Boolean           @default(false)
+  id                Int               @id @default(autoincrement())
+  userId            Int
+  stressScore       Float
+  riskLevel         String
+  emotion           String?
+  emotionConfidence Float?
+  seenByWelfare     Boolean           @default(false)
+  seenbyCommander   Boolean           @default(false)
 
-  user            User              @relation(fields:[userId], references:[id])
+  user              User              @relation(fields:[userId], references:[id])
 
-  createdAt       TimestamptzString @default(now())
+  createdAt         TimestamptzString @default(now())
 }
 
 model Notification {

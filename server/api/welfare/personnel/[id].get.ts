@@ -152,6 +152,8 @@ export default defineEventHandler(async (event) => {
     riskLevel: normalizeRiskLevel(assessment.riskLevel),
     notes: '',
     seen: true,
+    emotion: assessment.emotion ?? null,
+    emotionConfidence: assessment.emotionConfidence ?? null,
   }))
 
   const riskLevel = normalizeRiskLevel(latestAssessment?.riskLevel)
@@ -216,6 +218,10 @@ export default defineEventHandler(async (event) => {
 
     currentStressScore: latestAssessment?.stressScore ?? 0,
     maxStressScore: 10,
+
+    emotion: latestAssessment?.emotion ?? null,
+    emotionConfidence:
+    latestAssessment?.emotionConfidence ?? null,    
 
     riskLevel,
     riskLevelNote,

@@ -131,6 +131,20 @@
                   "kind": "scalar"
                 }
               },
+              "emotion": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "emotionConfidence": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -195,6 +209,12 @@
               "fields": {
                 "createdAt": {
                   "column": "createdAt"
+                },
+                "emotion": {
+                  "column": "emotion"
+                },
+                "emotionConfidence": {
+                  "column": "emotionConfidence"
                 },
                 "id": {
                   "column": "id"
@@ -1666,6 +1686,16 @@
                   "nativeType": "timestamptz",
                   "nullable": false
                 },
+                "emotion": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true
+                },
+                "emotionConfidence": {
+                  "codecId": "pg/float8@1",
+                  "nativeType": "float8",
+                  "nullable": true
+                },
                 "id": {
                   "codecId": "pg/int4@1",
                   "default": {
@@ -2862,7 +2892,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "e5b2973a6ad72aba767dfc9e68100ac049ea9a693131cc0e2517e7fe0b92e5c3"
+    "storageHash": "4d445b48f2a32e21b97df16a7cb8ded775ad84884a8ffb830ece4d4521782269"
   },
   "execution": {
     "executionHash": "329fc680727dda9a1f5edcdd28a50f7c729dbe61891b449f84b2cf5a458657e0",

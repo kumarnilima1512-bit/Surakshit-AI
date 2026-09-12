@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'e5b2973a6ad72aba767dfc9e68100ac049ea9a693131cc0e2517e7fe0b92e5c3'>;
+  StorageHashBase<'4d445b48f2a32e21b97df16a7cb8ded775ad84884a8ffb830ece4d4521782269'>;
 export type ExecutionHash =
   ExecutionHashBase<'329fc680727dda9a1f5edcdd28a50f7c729dbe61891b449f84b2cf5a458657e0'>;
 export type ProfileHash =
@@ -246,6 +246,8 @@ export type FieldOutputTypes = {
       readonly userId: CodecTypes['pg/int4@1']['output'];
       readonly stressScore: CodecTypes['pg/float8@1']['output'];
       readonly riskLevel: CodecTypes['pg/text@1']['output'];
+      readonly emotion: CodecTypes['pg/text@1']['output'] | null;
+      readonly emotionConfidence: CodecTypes['pg/float8@1']['output'] | null;
       readonly seenByWelfare: CodecTypes['pg/bool@1']['output'];
       readonly seenbyCommander: CodecTypes['pg/bool@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
@@ -369,6 +371,8 @@ export type FieldInputTypes = {
       readonly userId: CodecTypes['pg/int4@1']['input'];
       readonly stressScore: CodecTypes['pg/float8@1']['input'];
       readonly riskLevel: CodecTypes['pg/text@1']['input'];
+      readonly emotion: CodecTypes['pg/text@1']['input'] | null;
+      readonly emotionConfidence: CodecTypes['pg/float8@1']['input'] | null;
       readonly seenByWelfare: CodecTypes['pg/bool@1']['input'];
       readonly seenbyCommander: CodecTypes['pg/bool@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
@@ -489,6 +493,8 @@ export type StorageColumnTypes = {
   readonly public: {
     readonly assessment: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
+      readonly emotion: CodecTypes['pg/text@1']['output'] | null;
+      readonly emotionConfidence: CodecTypes['pg/float8@1']['output'] | null;
       readonly id: CodecTypes['pg/int4@1']['output'];
       readonly riskLevel: CodecTypes['pg/text@1']['output'];
       readonly seenbyCommander: CodecTypes['pg/bool@1']['output'];
@@ -612,6 +618,8 @@ export type StorageColumnInputTypes = {
   readonly public: {
     readonly assessment: {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
+      readonly emotion: CodecTypes['pg/text@1']['input'] | null;
+      readonly emotionConfidence: CodecTypes['pg/float8@1']['input'] | null;
       readonly id: CodecTypes['pg/int4@1']['input'];
       readonly riskLevel: CodecTypes['pg/text@1']['input'];
       readonly seenbyCommander: CodecTypes['pg/bool@1']['input'];
@@ -774,6 +782,16 @@ type ContractBase = Omit<
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
+                };
+                readonly emotion: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly emotionConfidence: {
+                  readonly nativeType: 'float8';
+                  readonly codecId: 'pg/float8@1';
+                  readonly nullable: true;
                 };
                 readonly seenByWelfare: {
                   readonly nativeType: 'bool';
@@ -1778,6 +1796,14 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly emotion: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly emotionConfidence: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
+              };
               readonly seenByWelfare: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/bool@1' };
@@ -1812,6 +1838,8 @@ type ContractBase = Omit<
                 readonly userId: { readonly column: 'userId' };
                 readonly stressScore: { readonly column: 'stressScore' };
                 readonly riskLevel: { readonly column: 'riskLevel' };
+                readonly emotion: { readonly column: 'emotion' };
+                readonly emotionConfidence: { readonly column: 'emotionConfidence' };
                 readonly seenByWelfare: { readonly column: 'seenByWelfare' };
                 readonly seenbyCommander: { readonly column: 'seenbyCommander' };
                 readonly createdAt: { readonly column: 'createdAt' };

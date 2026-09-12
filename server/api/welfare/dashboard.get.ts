@@ -393,6 +393,16 @@ export default defineEventHandler(
                 ?.stressScore ??
               null,
 
+            emotion:
+              latestAssessment
+                ?.emotion ??
+              null,
+
+            emotionConfidence:
+              latestAssessment
+                ?.emotionConfidence ??
+              null,
+
             riskLevel:
               (latestAssessment
                 ?.riskLevel ??

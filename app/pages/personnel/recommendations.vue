@@ -1,5 +1,6 @@
-
 <script setup lang="ts">
+import { ArrowLeft } from 'lucide-vue-next'
+
 const route = useRoute()
 
 const stressScore = computed(() => {
@@ -156,6 +157,18 @@ const hasResult = computed(() => {
   <div class="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
 
     <div class="mx-auto max-w-5xl">
+
+      <!-- Back Button -->
+      <div class="mb-6">
+        <button
+          type="button"
+          @click="$router.back()"
+          class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+        >
+          <ArrowLeft class="h-4 w-4" />
+          Back
+        </button>
+      </div>
 
       <!-- Header -->
       <div class="mb-8">
@@ -360,4 +373,3 @@ const hasResult = computed(() => {
 
   </div>
 </template>
-

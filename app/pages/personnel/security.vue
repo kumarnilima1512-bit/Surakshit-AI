@@ -1,4 +1,3 @@
-
 <script setup lang="ts">
 import {
   ShieldCheck,
@@ -12,6 +11,7 @@ import {
   ShieldAlert,
   Eye,
   EyeOff,
+  ArrowLeft,
 } from 'lucide-vue-next'
 
 const showPassword = ref(false)
@@ -33,6 +33,10 @@ const confirmTwoFactorPin = ref('')
 const twoFactorMessage = ref('')
 const twoFactorError = ref('')
 const twoFactorLoading = ref(false)
+
+// --------------------------------------------------
+// PASSWORD STRENGTH
+// --------------------------------------------------
 
 const passwordStrength = computed(() => {
   const password = newPassword.value
@@ -152,6 +156,7 @@ async function enableTwoFactor() {
     }
 
     twoFactorEnabled.value = true
+
     twoFactorMessage.value =
       'Two-factor authentication has been enabled successfully.'
 
@@ -268,19 +273,20 @@ async function logout() {
     <!-- Header -->
     <header class="border-b border-white/5 bg-[#0d1526]">
       <div
-        class="mx-auto flex max-w-6xl items-center justify-between px-6 py-5"
+        class="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6"
       >
 
+        <!-- Logo / Title -->
         <div class="flex items-center gap-3">
 
           <div
-            class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-600/15 text-blue-400"
+            class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-600/15 text-blue-400"
           >
             <img
-  src="/logos/surakshit-ai.png"
-  alt="Surakshit AI"
-  class="h-16 w-16 object-contain"
-/>
+              src="/logos/surakshit-ai.png"
+              alt="Surakshit AI"
+              class="h-16 w-16 object-contain"
+            />
           </div>
 
           <div>
@@ -295,9 +301,10 @@ async function logout() {
 
         </div>
 
+        <!-- Profile -->
         <NuxtLink
           to="/personnel/profile"
-          class="flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/10"
+          class="inline-flex w-fit items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/10"
         >
           <User :size="15" />
           My Profile
@@ -308,12 +315,21 @@ async function logout() {
 
     <!-- Main -->
     <main
-      class="mx-auto max-w-6xl space-y-5 px-6 py-6"
+      class="mx-auto max-w-6xl space-y-5 px-4 py-5 sm:px-6 sm:py-6"
     >
 
-      <!-- Security overview -->
+      <!-- Back Button -->
+      <NuxtLink
+        to="/personnel/profile"
+        class="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-slate-300 transition hover:bg-white/10"
+      >
+        <ArrowLeft :size="15" />
+        Back to Profile
+      </NuxtLink>
+
+      <!-- Security Overview -->
       <section
-        class="rounded-2xl border border-white/5 bg-[#0d1526] p-6"
+        class="rounded-2xl border border-white/5 bg-[#0d1526] p-5 sm:p-6"
       >
         <div class="flex items-start gap-4">
 
@@ -343,7 +359,7 @@ async function logout() {
         </div>
       </section>
 
-      <!-- Security status -->
+      <!-- Security Status -->
       <section
         class="rounded-2xl border border-white/5 bg-[#0d1526] p-5"
       >
@@ -362,7 +378,7 @@ async function logout() {
         </div>
 
         <div
-          class="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3"
+          class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3"
         >
 
           <!-- Password -->
@@ -452,7 +468,7 @@ async function logout() {
 
       <!-- Two Factor Authentication -->
       <section
-        class="rounded-2xl border border-white/5 bg-[#0d1526] p-6"
+        class="rounded-2xl border border-white/5 bg-[#0d1526] p-5 sm:p-6"
       >
 
         <div
@@ -534,7 +550,10 @@ async function logout() {
         </div>
 
         <!-- Setup -->
-        <div v-else-if="!showTwoFactorSetup" class="mt-5">
+        <div
+          v-else-if="!showTwoFactorSetup"
+          class="mt-5"
+        >
 
           <button
             type="button"
@@ -550,7 +569,7 @@ async function logout() {
         <!-- PIN Setup Form -->
         <div
           v-else
-          class="mt-5 rounded-xl border border-white/5 bg-white/[0.02] p-5"
+          class="mt-5 rounded-xl border border-white/5 bg-white/[0.02] p-4 sm:p-5"
         >
 
           <div class="mb-5">
@@ -566,7 +585,9 @@ async function logout() {
 
           </div>
 
-          <div class="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2">
+          <div
+            class="grid max-w-2xl grid-cols-1 gap-4 sm:grid-cols-2"
+          >
 
             <!-- PIN -->
             <div>
@@ -653,7 +674,9 @@ async function logout() {
           </div>
 
           <!-- Actions -->
-          <div class="mt-5 flex items-center gap-3">
+          <div
+            class="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center"
+          >
 
             <button
               type="button"
@@ -685,13 +708,13 @@ async function logout() {
 
       <!-- Change Password -->
       <section
-        class="rounded-2xl border border-white/5 bg-[#0d1526] p-6"
+        class="rounded-2xl border border-white/5 bg-[#0d1526] p-5 sm:p-6"
       >
 
         <div class="flex items-center gap-3">
 
           <div
-            class="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-500/15 text-blue-400"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-400"
           >
             <KeyRound
               :size="19"
@@ -716,7 +739,7 @@ async function logout() {
           @submit.prevent="updatePassword"
         >
 
-          <!-- Current password -->
+          <!-- Current Password -->
           <div>
 
             <label
@@ -755,7 +778,7 @@ async function logout() {
 
           </div>
 
-          <!-- New password -->
+          <!-- New Password -->
           <div>
 
             <label
@@ -797,7 +820,7 @@ async function logout() {
 
           </div>
 
-          <!-- Confirm password -->
+          <!-- Confirm Password -->
           <div>
 
             <label
@@ -873,7 +896,9 @@ async function logout() {
           </div>
 
           <!-- Actions -->
-          <div class="flex items-center gap-3 pt-1">
+          <div
+            class="flex flex-col gap-3 pt-1 sm:flex-row sm:items-center"
+          >
 
             <button
               type="submit"
@@ -896,7 +921,7 @@ async function logout() {
 
       </section>
 
-      <!-- Security tips -->
+      <!-- Security Tips -->
       <section
         class="rounded-2xl border border-white/5 bg-[#0d1526] p-5"
       >
@@ -948,7 +973,7 @@ async function logout() {
 
       <!-- Logout -->
       <section
-        class="flex items-center justify-between rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-5"
+        class="flex flex-col gap-4 rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-5 sm:flex-row sm:items-center sm:justify-between"
       >
 
         <div>
@@ -963,7 +988,7 @@ async function logout() {
 
         <button
           type="button"
-          class="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/15"
+          class="flex w-fit items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 px-4 py-2.5 text-xs font-semibold text-red-400 transition hover:bg-red-500/15"
           @click="logout"
         >
           <LogOut :size="15" />
@@ -977,7 +1002,7 @@ async function logout() {
 
     <!-- Footer -->
     <footer
-      class="border-t border-white/5 px-6 py-5 text-center text-[11px] text-slate-600"
+      class="border-t border-white/5 px-4 py-5 text-center text-[11px] text-slate-600 sm:px-6"
     >
       Surakshit AI &nbsp;|&nbsp;
       Personnel Stress &amp; Welfare Monitoring System
@@ -985,4 +1010,3 @@ async function logout() {
 
   </div>
 </template>
-```

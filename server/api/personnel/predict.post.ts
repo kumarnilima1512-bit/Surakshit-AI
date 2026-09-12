@@ -35,6 +35,8 @@ export default defineEventHandler(async (event) => {
       userId: authUser.userId,
       stressScore: prediction.stress_score,
       riskLevel: prediction.risk_level,
+      emotion: body.emotion ?? null,
+      emotionConfidence: body.emotionConfidence ?? null,
       seenByWelfare: false,
       seenbyCommander: false,
     })

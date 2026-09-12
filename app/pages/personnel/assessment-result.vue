@@ -1,5 +1,6 @@
-
 <script setup lang="ts">
+import { ArrowLeft } from 'lucide-vue-next'
+
 const route = useRoute()
 
 const stressScore = computed(() => {
@@ -14,10 +15,46 @@ const riskLevel = computed(() => {
     : null
 })
 
+const facialEmotion = computed(() => {
+  return typeof route.query.emotion === 'string'
+    ? route.query.emotion
+    : null
+})
+
+const emotionConfidence = computed(() => {
+  const value = Number(route.query.emotionConfidence)
+
+  return Number.isFinite(value) ? value : null
+})
+
+const emotionEmoji = computed(() => {
+  switch (facialEmotion.value?.toLowerCase()) {
+    case 'happy':
+      return '😊'
+    case 'sad':
+      return '😔'
+    case 'angry':
+      return '😠'
+    case 'fearful':
+      return '😨'
+    case 'disgusted':
+      return '🤢'
+    case 'surprised':
+      return '😮'
+    case 'neutral':
+      return '😐'
+    default:
+      return '🙂'
+  }
+})
+
 const scorePercentage = computed(() => {
   if (stressScore.value === null) return 0
 
-  return Math.min(Math.max((stressScore.value / 10) * 100, 0), 100)
+  return Math.min(
+    Math.max((stressScore.value / 10) * 100, 0),
+    100
+  )
 })
 
 const riskDescription = computed(() => {
@@ -48,6 +85,17 @@ const resultAvailable = computed(() => {
   <div class="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
     <div class="mx-auto max-w-4xl">
 
+      <!-- Back Button -->
+      <div class="mb-6">
+        <NuxtLink
+          to="/personnel/assessment"
+          class="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+        >
+          <ArrowLeft :size="16" />
+          Back to Assessment
+        </NuxtLink>
+      </div>
+
       <!-- Header -->
       <div class="mb-8">
         <p class="text-sm font-semibold uppercase tracking-wider text-blue-600">
@@ -64,7 +112,9 @@ const resultAvailable = computed(() => {
       </div>
 
       <!-- Result Card -->
-      <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 sm:p-8">
+      <div
+        class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-8"
+      >
 
         <!-- Valid Result -->
         <template v-if="resultAvailable">
@@ -78,7 +128,9 @@ const resultAvailable = computed(() => {
               </p>
 
               <div class="mt-2">
-                <span class="text-5xl font-bold text-slate-900 sm:text-6xl">
+                <span
+                  class="text-5xl font-bold text-slate-900 sm:text-6xl"
+                >
                   {{ stressScore!.toFixed(2) }}
                 </span>
 
@@ -107,6 +159,82 @@ const resultAvailable = computed(() => {
               </p>
             </div>
 
+          </div>
+
+          <!-- Facial Emotion Analysis -->
+          <div
+            v-if="facialEmotion"
+            class="mt-8 rounded-2xl border border-blue-100 bg-blue-50/50 p-5 sm:p-6"
+          >
+            <div class="flex items-center gap-3">
+              <div class="text-3xl">
+                🧠
+              </div>
+
+              <div>
+                <h2 class="text-lg font-semibold text-slate-900">
+                  Facial Emotion Analysis
+                </h2>
+
+                <p class="mt-1 text-xs text-slate-500">
+                  AI-based facial expression analysis
+                </p>
+              </div>
+            </div>
+
+            <div class="mt-5 grid gap-4 sm:grid-cols-2">
+
+              <!-- Emotion -->
+              <div class="rounded-xl bg-white p-4 ring-1 ring-slate-200">
+                <p class="text-sm font-medium text-slate-500">
+                  Detected Emotion
+                </p>
+
+                <div class="mt-2 flex items-center gap-3">
+                  <span class="text-3xl">
+                    {{ emotionEmoji }}
+                  </span>
+
+                  <span class="text-xl font-bold capitalize text-slate-900">
+                    {{ facialEmotion }}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Confidence -->
+              <div
+                v-if="emotionConfidence !== null"
+                class="rounded-xl bg-white p-4 ring-1 ring-slate-200"
+              >
+                <p class="text-sm font-medium text-slate-500">
+                  Detection Confidence
+                </p>
+
+                <p class="mt-2 text-xl font-bold text-slate-900">
+                  {{ Math.round(emotionConfidence * 100) }}%
+                </p>
+
+                <div
+                  class="mt-3 h-2 overflow-hidden rounded-full bg-slate-200"
+                >
+                  <div
+                    class="h-full rounded-full bg-blue-600 transition-all duration-500"
+                    :style="{
+                      width: `${Math.min(
+                        Math.max(emotionConfidence * 100, 0),
+                        100
+                      )}%`
+                    }"
+                  />
+                </div>
+              </div>
+
+            </div>
+
+            <p class="mt-4 text-xs leading-5 text-slate-500">
+              Facial expression analysis is an additional wellbeing indicator
+              and does not represent a clinical or psychological diagnosis.
+            </p>
           </div>
 
           <!-- Progress -->
